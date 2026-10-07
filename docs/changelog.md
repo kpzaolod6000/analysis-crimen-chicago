@@ -26,6 +26,55 @@ Reglas:
 
 ---
 
+## [2026-10-06] Sprint 1 · Paso 2b — Referencia de comandos de base de datos
+
+**Qué:** se creó `docs/database.md`, una referencia reutilizable de todos los
+comandos para operar PostgreSQL (conexión, aplicar migraciones, psql
+interactivo, meta-comandos, GUI, reset), con versiones para PowerShell y bash.
+**Por qué:** el usuario pidió que los comandos quedaran documentados para poder
+usarlos en otro host o en el servidor; hasta ahora solo vivían en el chat y en
+el changelog (que es un registro, no una referencia).
+**Archivos:**
+- `docs/database.md` — guía de operación de la BD (nueva)
+- `README.md` — añadida a la tabla de documentación
+- `AGENTS.md` — añadida a "Documentación clave"
+**Tests:**
+- No aplica (solo documentación).
+**Cómo verificar:**
+- Seguir `docs/database.md` §3 para aplicar migraciones y §4 para consultar;
+  los comandos coinciden con los ya validados en el Paso 2.
+
+## [2026-10-06] Sprint 1 · Paso 2 — Migración 001_raw (schemas + raw.crimes)
+
+**Qué:** primera migración SQL: crea los schemas `raw`, `staging`, `warehouse`
+y la tabla `raw.crimes` (copia fiel de los campos de Socrata + columna de
+auditoría `loaded_at`). Se añadió un montaje de solo-lectura `./database` al
+contenedor Postgres para aplicar migraciones con `psql -f`.
+**Por qué:** es la capa de entrada del modelo raw→staging→warehouse (plan §6 y
+skill `chicago-postgres`). DDL idempotente (`IF NOT EXISTS`) para poder
+re-ejecutar sin romper.
+**Archivos:**
+- `database/migrations/001_raw.sql` — schemas + `raw.crimes` + índice por `date`
+- `docker-compose.yml` — postgres monta `./database:/database:ro`
+**Decisiones de diseño:**
+- `id TEXT PRIMARY KEY` → fuerza NOT NULL + UNIQUE (regla de `chicago-data-quality`).
+- `date`/`updated_on` como `TIMESTAMP` (naive): Socrata entrega hora local de
+  Chicago sin offset; guardarla literal evita conversiones indeseadas.
+- `updated_on` es el campo de Socrata (= `source_updated_at` del plan §6).
+- `location JSONB` preserva el compuesto original (human_address/point).
+- `loaded_at TIMESTAMPTZ DEFAULT now()` = auditoría de cuándo ingestamos.
+- Índice solo en `date` (consultas por ventana); sin sobre-indexar raw.
+**Tests:**
+- Verificación manual aplicada (ver abajo). El **test de integración
+  automatizado** (DB de pruebas en 5433 + pytest) es el Paso 3 inmediato; el
+  paso no se cierra hasta que exista y pase.
+**Cómo verificar:**
+- `docker compose up -d` (recrea postgres con el montaje)
+- `docker compose exec postgres psql -U postgres -d chicago_crimes -f /database/migrations/001_raw.sql`
+  → `CREATE SCHEMA` x3, `CREATE TABLE`, `CREATE INDEX`
+- `docker compose exec postgres psql -U postgres -d chicago_crimes -c "\dn"` → raw/staging/warehouse
+- `... -c "\d raw.crimes"` → 23 columnas, PK en id, índice idx_raw_crimes_date
+
 ## [2026-10-06] Sprint 1 · Paso 1 — Infraestructura base (docker-compose)
 
 **Qué:** se creó la infraestructura local con Docker Compose: servicio

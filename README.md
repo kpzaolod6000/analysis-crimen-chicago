@@ -17,6 +17,7 @@ Socrata → n8n → PostgreSQL (raw/staging/warehouse) → Python/ML → FastAPI
 | [docs/plan.md](docs/plan.md) | Plan maestro: arquitectura, decisiones, sprints, MVP |
 | [docs/testing.md](docs/testing.md) | Estrategia de tests (unit, integración, Playwright E2E) |
 | [docs/dev-environment.md](docs/dev-environment.md) | Docker, CI, nvm, venv, VS Code, buenas prácticas |
+| [docs/database.md](docs/database.md) | Comandos de operación de PostgreSQL (migraciones, psql, GUI, reset) |
 | [docs/harness.md](docs/harness.md) | Agentes, skills y MCP del proyecto |
 | [docs/harness-install.md](docs/harness-install.md) | Instalar el harness en otro host |
 | [docs/changelog.md](docs/changelog.md) | Registro de cada cambio realizado |

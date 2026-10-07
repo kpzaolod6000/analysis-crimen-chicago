@@ -6,6 +6,7 @@ Reglas que TODO agente (Claude, opencode, etc.) debe seguir en este repo.
 - `docs/plan.md` — plan maestro y sprints (fuente de verdad del alcance).
 - `docs/testing.md` — estrategia de tests por capa.
 - `docs/dev-environment.md` — herramientas de ingeniería (Docker, CI, nvm, venv).
+- `docs/database.md` — comandos de operación de PostgreSQL (migraciones, psql, GUI, reset).
 - `docs/harness.md` + `docs/harness-install.md` — agentes, skills y MCP.
 - `docs/changelog.md` — registro de cada cambio.
 
