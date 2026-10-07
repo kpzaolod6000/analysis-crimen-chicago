@@ -26,6 +26,32 @@ Reglas:
 
 ---
 
+## [2026-10-06] Sprint 1 · Paso 1 — Infraestructura base (docker-compose)
+
+**Qué:** se creó la infraestructura local con Docker Compose: servicio
+`postgres` (PostgreSQL 16) y servicio `n8n`, con volúmenes persistentes,
+healthcheck y red compartida. Se añadió `.env.example` y el `.env` local.
+**Por qué:** es la primera meta del plan (Sprint 1): Postgres + n8n corriendo
+en contenedores, sin instalaciones manuales, de forma reproducible en cualquier
+host. n8n usa SQLite propio (volumen) y se conectará a Postgres por nombre de
+servicio en los workflows.
+**Archivos:**
+- `docker-compose.yml` — servicios `postgres` (5432) y `n8n` (5673), volúmenes
+  `postgres_data`/`n8n_data`, healthcheck `pg_isready`, `depends_on` saludable
+- `.env.example` — variables documentadas (credenciales dev, puertos, TZ
+  `America/Lima` = hora local del operador en Perú); se copia a `.env`
+- `.env` — creado localmente (ignorado por git)
+**Tests:**
+- Todavía no hay código Python; la verificación de este paso es de
+  infraestructura (ver "Cómo verificar"). Los tests de integración de esquemas
+  llegan en el Paso 2/3 con las migrations.
+**Cómo verificar:**
+- `docker compose config --quiet` → sin errores (ya validado).
+- `docker compose up -d` → ambos contenedores `Up`/`healthy` en
+  `docker compose ps`.
+- Postgres: `docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT version();"`
+- n8n: abrir http://localhost:5673 (primera vez pide crear cuenta de owner).
+
 ## [2026-10-06] Sprint 0.7 — Git, licencia y Python 3.12
 
 **Qué:** se resolvieron los 3 pendientes de la revisión: (1) fijar Python 3.12
