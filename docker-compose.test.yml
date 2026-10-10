@@ -1,0 +1,31 @@
+name: crimen-chicago-test
+
+# Base de datos de PRUEBAS (Sprint 1, Paso 3).
+# Aislada de desarrollo: puerto 5433 (dev usa 5432) y volumen propio.
+# Uso:
+#   docker compose -f docker-compose.test.yml up -d
+#   pytest python/tests/integration
+#   docker compose -f docker-compose.test.yml down      # apaga (conserva datos)
+#   docker compose -f docker-compose.test.yml down -v   # borra datos de prueba
+
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: chicago_postgres_test
+    restart: "no"
+    environment:
+      POSTGRES_USER: ${TEST_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${TEST_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${TEST_POSTGRES_DB:-chicago_crimes_test}
+    ports:
+      - "${TEST_POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_test_data:

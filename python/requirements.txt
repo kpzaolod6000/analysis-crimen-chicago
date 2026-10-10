@@ -1,0 +1,4 @@
+# Dependencias de Python (tests + ML + API, crecen por sprint).
+# Instalación: pip install -r python/requirements.txt (dentro de .venv con Python 3.12)
+pytest>=8.0
+psycopg2-binary>=2.9

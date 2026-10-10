@@ -26,6 +26,62 @@ Reglas:
 
 ---
 
+## [2026-10-07] Sprint 1 — Comandos de verificación guardados en docs
+
+**Qué:** los comandos de verificación dados en el chat (levantar/apagar la DB
+de pruebas, correr los tests de integración en PowerShell y bash) quedaron
+guardados en la documentación: nueva §9 en `docs/database.md` y comandos
+previos + invocación en `docs/testing.md` §4 (marcado Sprint 1 ✅).
+**Por qué:** el usuario pidió que ningún comando de verificación viva solo en
+el chat; la documentación es la referencia reutilizable en cualquier host.
+**Archivos:**
+- `docs/database.md` — §9 nueva: DB de pruebas (conexión, variables, up/down)
+- `docs/testing.md` — §4: previo (levantar DB) + comandos PowerShell/bash
+**Tests:**
+- No aplica (solo documentación).
+**Cómo verificar:**
+- Seguir `docs/testing.md` §4 y `docs/database.md` §9; los comandos son los
+  ya validados en el Paso 3 (8 passed).
+
+## [2026-10-07] Sprint 1 — Makefile en la planificación
+
+**Qué:** se añadió el `Makefile` a la planificación: figura en la estructura
+del repo (§5) y como ítem del checklist del Sprint 1 (atajos `up`, `down`,
+`migrate`, `test-unit`, `test-integration`, `lint`; el CI lo usará). También
+se registró `docker-compose.test.yml` (creado en el Paso 3) en ambos sitios.
+**Por qué:** el usuario pidió que los comandos del proyecto quedaran
+centralizados en un `Makefile` antes de continuar; así el Sprint 1 lo crea
+como parte de las fundaciones y el CI lo reutiliza.
+**Archivos:**
+- `docs/plan.md` — §5 (estructura) y Sprint 1 (checklist + resultado)
+**Tests:**
+- No aplica (solo planificación).
+**Cómo verificar:**
+- Leer `docs/plan.md` §5 y el checklist del Sprint 1.
+**Pendiente (no hecho aquí):**
+- Crear el archivo `Makefile` real (siguiente paso del Sprint 1).
+
+## [2026-10-07] Sprint 1 · Paso 3 — Tests de integración de 001_raw
+
+**Qué:** suite de integración que aplica `001_raw.sql` sobre una DB de pruebas
+aislada (Docker, puerto 5433) y verifica schemas, tabla `raw.crimes`
+(23 columnas + tipos), PK en `id`, índice en `date`, idempotencia de la
+migración y enforcement de la PK (duplicados/nulos). Se añadió
+`docker-compose.test.yml` y `python/requirements.txt` (pytest + psycopg2-binary).
+**Por qué:** el Paso 2 quedó con verificación solo manual; la regla del
+proyecto exige test automatizado y el plan (Sprint 1) pide tests de
+integración de esquemas/tipos. La DB de pruebas evita tocar desarrollo (5432).
+**Archivos:**
+- `python/tests/integration/conftest.py` — fixtures (conexión + migración)
+- `python/tests/integration/test_raw_schema.py` — 8 tests
+- `docker-compose.test.yml` — servicio `postgres-test` en 5433 (nuevo)
+- `python/requirements.txt` — pytest + psycopg2-binary (nuevo)
+**Tests:**
+- `python/tests/integration/test_raw_schema.py` — 8 passed
+**Cómo verificar:**
+- `docker compose -f docker-compose.test.yml up -d`
+- `.\.venv\Scripts\python.exe -m pytest python/tests/integration -v` → 8 passed
+
 ## [2026-10-06] Sprint 1 · Paso 2b — Referencia de comandos de base de datos
 
 **Qué:** se creó `docs/database.md`, una referencia reutilizable de todos los

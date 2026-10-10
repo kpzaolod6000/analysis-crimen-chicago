@@ -122,6 +122,8 @@ crimen-chicago/
 ├── .nvmrc                   # versión de Node fijada (22 LTS)
 ├── .env.example
 ├── docker-compose.yml
+├── docker-compose.test.yml    # DB de pruebas (puerto 5433) — Sprint 1
+├── Makefile                   # atajos: up/down/migrate/tests — Sprint 1
 ├── AGENTS.md
 └── README.md
 ```
@@ -195,10 +197,12 @@ Cada sprint incluye sus tests (ver [docs/testing.md](testing.md)).
 
 ### Sprint 1 — Fundaciones `[ ]`
 - [ ] `docker-compose.yml` (PostgreSQL 16 + n8n), `.env.example`
+- [ ] `docker-compose.test.yml` (PostgreSQL de pruebas en puerto 5433)
+- [ ] `Makefile` (atajos: `up`, `down`, `migrate`, `test-unit`, `test-integration`, `lint`)
 - [ ] `database/migrations/001_raw.sql` (schemas raw/staging/warehouse + raw.crimes)
 - [ ] Tests de integración: esquemas y tablas existen, tipos correctos
-- [ ] CI básico con GitHub Actions (`.github/workflows/ci.yml`: ruff + pytest)
-- Resultado: `docker compose up` → Postgres + n8n funcionando.
+- [ ] CI básico con GitHub Actions (`.github/workflows/ci.yml`: ruff + pytest, usando `make`)
+- Resultado: `make up` → Postgres + n8n funcionando.
 
 ### Sprint 2 — Ingesta (MVP del pipeline) `[ ]`
 - [ ] Helper Python opcional para explorar Socrata / construir queries SoQL

@@ -122,9 +122,24 @@ dashboard/e2e/
 | Suite | Comando | Estado |
 |---|---|---|
 | Unit (python) | `pytest python/tests/unit` | Sprint 2+ |
-| Integration (db) | `pytest python/tests/integration` | Sprint 1+ |
+| Integration (db) | `pytest python/tests/integration` | Sprint 1 ✅ |
 | Integration (api) | `pytest api/tests` | Sprint 6 |
 | E2E (dashboard) | `pytest dashboard/e2e` | Sprint 8 |
+
+**Previo a los tests de integración:** levantar la DB de pruebas
+(ver [docs/database.md](database.md) §9):
+
+```powershell
+docker compose -f docker-compose.test.yml up -d
+.\.venv\Scripts\python.exe -m pytest python/tests/integration -v
+```
+
+bash (Linux/macOS), con el venv activado:
+
+```bash
+docker compose -f docker-compose.test.yml up -d
+pytest python/tests/integration -v
+```
 
 ## 5. Cobertura esperada
 

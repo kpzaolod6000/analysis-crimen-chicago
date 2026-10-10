@@ -104,3 +104,31 @@ docker compose stop           # apaga sin borrar
 docker compose down           # apaga y quita contenedores (conserva volúmenes)
 docker compose logs -f postgres   # ver logs en vivo
 ```
+
+## 9. Base de datos de pruebas (tests de integración)
+
+Contenedor aislado de desarrollo: **puerto 5433** (dev usa 5432), volumen
+propio y DB `chicago_crimes_test`. Los tests (`python/tests/integration`)
+aplican las migraciones solos; aquí solo se levanta/apaga el contenedor.
+
+| Dato | Valor por defecto | Variable para cambiarlo |
+|---|---|---|
+| Host / puerto | `localhost:5433` | `TEST_POSTGRES_HOST` / `TEST_POSTGRES_PORT` |
+| Usuario | `postgres` | `TEST_POSTGRES_USER` |
+| Password | `postgres` | `TEST_POSTGRES_PASSWORD` |
+| DB | `chicago_crimes_test` | `TEST_POSTGRES_DB` |
+
+```powershell
+docker compose -f docker-compose.test.yml up -d    # levantar
+docker compose -f docker-compose.test.yml ps       # debe quedar "healthy"
+docker compose -f docker-compose.test.yml down     # apagar (conserva datos)
+docker compose -f docker-compose.test.yml down -v  # apagar y BORRAR datos de prueba
+```
+
+bash (Linux/macOS): los mismos comandos funcionan igual.
+
+Consulta suelta contra la DB de pruebas (ejemplo):
+
+```powershell
+docker compose -f docker-compose.test.yml exec postgres-test psql -U postgres -d chicago_crimes_test -c "\dn"
+```
