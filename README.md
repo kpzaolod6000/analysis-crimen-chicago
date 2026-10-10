@@ -18,6 +18,7 @@ Socrata → n8n → PostgreSQL (raw/staging/warehouse) → Python/ML → FastAPI
 | [docs/testing.md](docs/testing.md) | Estrategia de tests (unit, integración, Playwright E2E) |
 | [docs/dev-environment.md](docs/dev-environment.md) | Docker, CI, nvm, venv, VS Code, buenas prácticas |
 | [docs/database.md](docs/database.md) | Comandos de operación de PostgreSQL (migraciones, psql, GUI, reset) |
+| [docs/git-workflow.md](docs/git-workflow.md) | Ramas, tags y releases (main/develop/feature) |
 | [docs/harness.md](docs/harness.md) | Agentes, skills y MCP del proyecto |
 | [docs/harness-install.md](docs/harness-install.md) | Instalar el harness en otro host |
 | [docs/changelog.md](docs/changelog.md) | Registro de cada cambio realizado |
@@ -35,9 +36,9 @@ n8n · PostgreSQL 16 · Python 3.12 · FastAPI · D3.js · Playwright · Power A
 
 ## Estado
 
-Sprints 0, 0.5 y 0.6 completados (plan, harness de opencode y entorno de
-desarrollo). Próximo paso: **Sprint 1 — Fundaciones** (docker-compose con
-PostgreSQL + n8n, `.env.example`, migración inicial `raw.crimes` y CI básico).
+Sprint 1 completado (infra Docker, `raw.crimes`, tests de integración,
+`Makefile` y CI básico). Próximo paso: **Sprint 2 — Ingesta**
+(Socrata → n8n → `raw.crimes`).
 
 Antes de empezar, instala el entorno siguiendo
 [docs/dev-environment.md](docs/dev-environment.md) §7 (Docker Desktop, Node

@@ -8,6 +8,7 @@ Reglas que TODO agente (Claude, opencode, etc.) debe seguir en este repo.
 - `docs/dev-environment.md` — herramientas de ingeniería (Docker, CI, nvm, venv).
 - `docs/database.md` — comandos de operación de PostgreSQL (migraciones, psql, GUI, reset).
 - `docs/harness.md` + `docs/harness-install.md` — agentes, skills y MCP.
+- `docs/git-workflow.md` — ramas, tags y releases (main/develop/feature).
 - `docs/changelog.md` — registro de cada cambio.
 
 ## Idioma
@@ -20,12 +21,13 @@ Reglas que TODO agente (Claude, opencode, etc.) debe seguir en este repo.
    una vez.
 2. **Documentar cada cambio** en `docs/changelog.md` (formato definido ahí:
    qué / por qué / archivos / tests / cómo verificar) ANTES de darlo por
-   terminado.
-3. **Todo cambio de código incluye sus tests.** Sin tests, el cambio no está
+   terminado.3. **Todo cambio de código incluye sus tests.** Sin tests, el cambio no está
    terminado. Ver estrategia en `docs/testing.md`.
 4. Al completar un sprint, marcarlo como `[x]` en `docs/plan.md`.
 5. Consultar `docs/plan.md` para no salirse del alcance definido (nada de
    Kafka, Airflow, Spark, Kubernetes, LLMs, etc.).
+6. Trabajar en `feature/*` desde `develop` según `docs/git-workflow.md`;
+   nunca commitear directo a `main`.
 
 ## Testing
 - Python/API: `pytest` (unit + integración). Estructura:

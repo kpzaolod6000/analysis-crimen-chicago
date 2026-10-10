@@ -26,6 +26,86 @@ Reglas:
 
 ---
 
+## [2026-10-10] Sprint 1 — Modelo Git alineado al artículo de nvie (GitFlow)
+
+**Qué:** reescrito `docs/git-workflow.md` para seguir el artículo
+"A successful Git branching model" (nvie, 2010) como práctica explícita:
+reglas de origen/destino por tipo de rama, merges siempre `--no-ff`,
+versión asignada al crear la `release-*`, prohibición de features en
+release, excepción del hotfix con `release-*` abierta y nota de reflexión
+del autor (por qué GitFlow sí aplica aquí). Naming ajustado al artículo:
+`release-0.2.0` / `hotfix-0.1.1` (antes `release/sprintN`). Adaptaciones
+documentadas: `main` por `master` y tags `vX.Y.Z`.
+**Por qué:** el usuario pidió tomar el artículo como práctica; el doc
+anterior era "GitFlow simplificado" con naming propio y sin las reglas
+formales (no-ff, bump, excepción hotfix→release).
+**Archivos:**
+- `docs/git-workflow.md` — reescrito (9 secciones, fuente citada)
+- `docs/plan.md` — §2 regla 6 con naming del artículo
+**Tests:**
+- No aplica (solo documentación).
+**Cómo verificar:**
+- Leer `docs/git-workflow.md` y comparar §3-§6 con el artículo; los comandos
+  son los del modelo estrenado en §9.
+
+## [2026-10-10] Sprint 1 — Modelo de ramas, tags y releases
+
+**Qué:** se formalizó el flujo Git (GitFlow simplificado) en el nuevo
+`docs/git-workflow.md`: roles de `main/develop/feature/release/hotfix`,
+naming, ciclo por paso, cierre de sprint con tag SemVer (`v0.1.0` = Sprint 1),
+mapeo con el CI y checklist de protección de `main` al crear el remote. Se
+creó la rama `develop`, el CI ahora corre en `main` y `develop`, y el plan
+(§2, regla 6) + `AGENTS.md` referencian el modelo.
+**Por qué:** el usuario pidió trabajar con buenas prácticas (main, develop,
+feature, release, tags) antes del Sprint 2; sin modelo, los commits caían
+todos a `main` sin releases versionados.
+**Archivos:**
+- `docs/git-workflow.md` — modelo completo + comandos (nuevo)
+- `docs/plan.md` — §2, regla 6 (ramas)
+- `AGENTS.md` — doc clave + regla 6 (feature/*, no directo a main)
+- `README.md` — tabla de docs (+1 fila)
+- `.github/workflows/ci.yml` — triggers en `[main, develop]`
+**Tests:**
+- No aplica (docs + config CI). YAML del workflow re-validado abajo.
+**Cómo verificar:**
+- `git branch -a` → `main` + `develop`
+- `git log --oneline --graph --all` → `develop` desde el commit del Paso 3
+- Leer `docs/git-workflow.md` §7 para estrenar el modelo (commit Paso 4 en
+  `main`, tag `v0.1.0`, merge a `develop`).
+
+## [2026-10-10] Sprint 1 · Paso 4 — Makefile real + CI básico (cierra Sprint 1)
+
+**Qué:** se creó el `Makefile` raíz (atajos `up/down/migrate/test-up/
+test-down/test-unit/test-integration/lint`, recetas `sh` portables para CI y
+Git Bash) y el CI con GitHub Actions (`.github/workflows/ci.yml`: ruff +
+`make test-integration` contra un servicio Postgres 16 en 5433). El lint
+obligó a ordenar los imports de `test_raw_schema.py`. Con esto se marca el
+**Sprint 1 como `[x]`** en el plan y se actualiza el estado del README.
+**Por qué:** centralizar comandos (pedido del usuario) y que cada push
+verifique lint + tests sin "en mi máquina funciona". El CI usa el servicio
+Postgres de GitHub en vez de `docker-compose.test.yml` (mismo puerto y DB).
+**Archivos:**
+- `Makefile` — atajos del proyecto (nuevo)
+- `.github/workflows/ci.yml` — lint + integración en push/PR a main (nuevo)
+- `python/requirements-dev.txt` — ruff (nuevo)
+- `python/tests/integration/test_raw_schema.py` — fix de imports (ruff I001)
+- `docs/plan.md` — Sprint 1 marcado `[x]`
+- `README.md` — estado: Sprint 1 hecho, próximo Sprint 2
+**Tests:**
+- `ruff check python` → All checks passed
+- `python/tests/integration` → 8 passed (re-verificado)
+- `.github/workflows/ci.yml` validado como YAML; `migrate` re-ejecutado en
+  dev (idempotente, solo NOTICEs)
+**Cómo verificar:**
+- `make test-up` (o `docker compose -f docker-compose.test.yml up -d`)
+- `make lint` y `make test-integration` (en Windows sin `make`: `ruff check
+  python` y `pytest python/tests/integration -v` desde el `.venv`)
+- El CI corre solo tras el push a GitHub (pendiente de remote).
+**Pendientes detectados:**
+- `make test-unit` existe pero se activa en el Sprint 2 (aún no hay tests unit).
+- Sin `make` en Windows: usar Git Bash o los comandos de `docs/`.
+- El CI se ejecutará de verdad al conectar el remote y pushear (§8 dev-env).
+
 ## [2026-10-07] Sprint 1 — Comandos de verificación guardados en docs
 
 **Qué:** los comandos de verificación dados en el chat (levantar/apagar la DB

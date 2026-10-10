@@ -33,6 +33,10 @@ Construir un sistema end-to-end (no un notebook) que:
 4. **No se avanza de sprint sin cerrar el anterior** (código + tests + docs).
 5. Durante desarrollo se trabaja con **ventanas de datos pequeñas**
    (1 mes → 3 meses → 1 año → histórico completo).
+6. **Ramas Git (modelo de nvie/GitFlow):** trabajo diario en `feature/*`
+   desde `develop`; merges siempre `--no-ff`; sprints liberados vía
+   `release-<versión>` → `main` + tag `vX.Y.Z`; fixes urgentes vía
+   `hotfix-<versión>`. Ver [docs/git-workflow.md](git-workflow.md).
 
 ## 3. Decisiones técnicas
 
@@ -195,13 +199,13 @@ Cada sprint incluye sus tests (ver [docs/testing.md](testing.md)).
       + remote de GitHub
 - Resultado: repo versionado desde el planning; base lista para el CI (Sprint 1).
 
-### Sprint 1 — Fundaciones `[ ]`
-- [ ] `docker-compose.yml` (PostgreSQL 16 + n8n), `.env.example`
-- [ ] `docker-compose.test.yml` (PostgreSQL de pruebas en puerto 5433)
-- [ ] `Makefile` (atajos: `up`, `down`, `migrate`, `test-unit`, `test-integration`, `lint`)
-- [ ] `database/migrations/001_raw.sql` (schemas raw/staging/warehouse + raw.crimes)
-- [ ] Tests de integración: esquemas y tablas existen, tipos correctos
-- [ ] CI básico con GitHub Actions (`.github/workflows/ci.yml`: ruff + pytest, usando `make`)
+### Sprint 1 — Fundaciones `[x]`
+- [x] `docker-compose.yml` (PostgreSQL 16 + n8n), `.env.example`
+- [x] `docker-compose.test.yml` (PostgreSQL de pruebas en puerto 5433)
+- [x] `Makefile` (atajos: `up`, `down`, `migrate`, `test-unit`, `test-integration`, `lint`)
+- [x] `database/migrations/001_raw.sql` (schemas raw/staging/warehouse + raw.crimes)
+- [x] Tests de integración: esquemas y tablas existen, tipos correctos
+- [x] CI básico con GitHub Actions (`.github/workflows/ci.yml`: ruff + pytest, usando `make`)
 - Resultado: `make up` → Postgres + n8n funcionando.
 
 ### Sprint 2 — Ingesta (MVP del pipeline) `[ ]`

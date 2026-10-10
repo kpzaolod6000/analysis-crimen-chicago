@@ -11,7 +11,6 @@ Uso:
 
 import psycopg2
 import pytest
-
 from conftest import apply_migration
 
 EXPECTED_COLUMNS = {

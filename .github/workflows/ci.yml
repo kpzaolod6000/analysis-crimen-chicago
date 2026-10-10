@@ -1,0 +1,55 @@
+# CI básico (Sprint 1): lint + tests de integración en cada push/PR a main.
+#
+# Los tests de integración usan el servicio Postgres de GitHub (puerto 5433,
+# misma convención que docker-compose.test.yml en local); aplican 001_raw.sql
+# ellos mismos, así que no hay paso de migrate separado.
+
+name: ci
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: chicago_crimes_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d chicago_crimes_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      TEST_POSTGRES_HOST: localhost
+      TEST_POSTGRES_PORT: 5433
+      TEST_POSTGRES_USER: postgres
+      TEST_POSTGRES_PASSWORD: postgres
+      TEST_POSTGRES_DB: chicago_crimes_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r python/requirements.txt -r python/requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: make lint
+
+      - name: Integration tests (PostgreSQL service)
+        run: make test-integration
