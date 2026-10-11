@@ -26,6 +26,54 @@ Reglas:
 
 ---
 
+## [2026-10-10] Sprint 2 — Checklist de verificación por paso (docs/verification.md)
+
+**Qué:** nuevo `docs/verification.md`: checklist accionable por sprint/paso
+con (1) los objetos revisables, (2) las verificaciones de contenido
+(tests/lint/manual con comandos exactos) y (3) los pasos git
+(add/commit/push en el flujo GitFlow). Ya completado para todo Sprint 1 y el
+Paso 1 del Sprint 2; los pasos siguientes se llenan al implementarlos.
+**Por qué:** el usuario pidió guardar por sprint los pasos de verificación y
+git que hasta ahora solo vivían en el chat y dispersos entre docs.
+**Archivos:**
+- `docs/verification.md` — checklist por paso (nuevo)
+- `AGENTS.md` — regla 2 extendida: todo paso debe dejar su checklist aquí
+**Tests:**
+- No aplica (solo documentación).
+**Cómo verificar:**
+- Ejecutar tal cual la checklist del Sprint 2 · Paso 1 (pytest 17/25 + ruff
+  + git add/commit/push); los comandos son los ya validados en esta sesión.
+
+## [2026-10-10] Sprint 2 · Paso 1 — Helper Python Socrata/SoQL + tests unitarios
+
+**Qué:** primer módulo de `python/src/ingestion/`: `socrata.py` con 4 piezas —
+`build_params` (construye `$where/$select/$order/$limit/$offset/$$app_token`),
+`date_window_where` (rango half-open `date >= start AND date < end`),
+`fetch_page` (GET JSON con urllib, sin dependencias nuevas) y `paginate`
+(generador por páginas con `ORDER BY id` determinista, para alimentar al
+workflow n8n). 17 tests unitarios nuevos sin red (fake fetch + monkeypatch).
+**Por qué:** Sprint 2 pide "helper opcional para explorar Socrata / construir
+queries SoQL"; centraliza las reglas de la skill `chicago-data-ingestion`
+(nunca OFFSET profundo sin filtro de fechas, ORDER BY id, límite de página
+<= 50000) en un solo lugar testable. `urllib` del stdlib evita sumar
+`requests` al requirements.
+**Archivos:**
+- `python/src/ingestion/socrata.py` — helper (nuevo)
+- `python/src/ingestion/__init__.py` — paquete (nuevo)
+- `python/tests/unit/conftest.py` — sys.path hacia `python/src` (nuevo)
+- `python/tests/unit/test_socrata.py` — 17 tests (nuevo)
+**Tests:**
+- `python/tests/unit` → 17 passed · total 25 passed (unit + integration)
+- `ruff check python` → All checks passed (se corrigieron: import Callable
+  desde collections.abc, TypeError para respuesta no-lista, orden de imports,
+  variable dummy `_calls`)
+**Cómo verificar:**
+- `pytest python/tests/unit -v`
+- `ruff check python`
+- Aún sin red: en el Paso 2/3 el helper se consume solo desde n8n vía HTTP;
+  para explorar a mano: `socrata.fetch_page("ijzp-q8t2",
+  socrata.build_params(where=socrata.date_window_where(...), limit=5))`
+
 ## [2026-10-10] Sprint 1 — Modelo Git alineado al artículo de nvie (GitFlow)
 
 **Qué:** reescrito `docs/git-workflow.md` para seguir el artículo
