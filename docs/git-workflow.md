@@ -124,12 +124,30 @@ hotfixes. Un tag por release en `main`, siempre anotados (`-a`):
 Ver: `git tag` · detalle: `git show v0.1.0` · GitHub Releases se crean desde
 cada tag cuando exista el remote.
 
-## 8. CI y ramas
+## 8. CI y ramas (GitHub Actions)
 
-`.github/workflows/ci.yml` corre en push a `main`/`develop` y en PRs hacia
-ambas. Reglas:
+`.github/workflows/ci.yml` — workflow **`ci`**, job `lint-and-test`:
+
+- **Triggers:** push a `main`, `develop` y `feature/**`; y PRs hacia
+  `main`/`develop`. Con el trigger de `feature/**`, cada push de tu rama se
+  valida ANTES del merge — no descubres el rojo al abrir el PR.
+- **Entorno:** `ubuntu-latest`, Python 3.12, dependencias de
+  `python/requirements.txt` + `requirements-dev.txt`.
+- **Pasos:**
+  1. `make lint` → `ruff check python`
+  2. `make test-integration` → pytest contra un **servicio Postgres 16 de
+     GitHub** en el puerto 5433 (misma convención que `docker-compose.test.yml`
+     local; las migraciones las aplican los tests, no hay paso de migrate).
+- **Dónde verlo:** GitHub → pestaña *Actions* → run "ci" por cada commit.
+
+Reglas:
 
 - Ningún merge a `develop` ni a `main` con CI rojo.
+- **Ruff sin config y sin fijar:** no hay `ruff.toml`/`pyproject.toml` y
+  `requirements-dev.txt` instala `ruff>=0.8` (flotante) → el CI siempre
+  lintea con la ÚLTIMA ruff y tu ruff local puede ir atrás. Ese drift fue el
+  caso real del hotfix `v0.2.1` (RUF100: local verde, CI rojo). Mitigación
+  propuesta: fijar versión exacta en `requirements-dev.txt`.
 - Al crear el remote: proteger `main` en GitHub (Settings → Branches →
   Add rule): require PR + status checks (`ci`) + no bypass.
   (El artículo no habla de PRs —son de la era pre-GitHub-flow—, pero la
@@ -150,4 +168,94 @@ git checkout develop; git merge --no-ff main
 
 # 3. el Sprint 2 ya nace como feature desde develop (ver §4):
 git checkout -b feature/sprint2-socrata-helper develop
+```
+
+## 10. Cheat sheet — comandos por escenario
+
+Referencia rápida del día a día. `git switch` = la forma moderna de
+`git checkout <rama>` (idéntica para cambiar/crear ramas). El CI corre en
+**cada push** (main, develop y `feature/**`) — ver §8.
+
+### 10.1 Empezar un paso del sprint (rama desde `develop`)
+
+```powershell
+git switch develop
+git pull
+git switch -c feature/sprint3-staging develop
+```
+
+### 10.2 Guardar avance (repetir cuantas veces haga falta)
+
+```powershell
+git status --short
+git add python/ docs/          # o los archivos específicos
+git commit -m "feat: ..."      # Conventional Commits: feat/fix/chore/docs/ci
+git push -u origin feature/sprint3-staging   # 1a vez; luego: git push
+```
+
+### 10.3 Terminar un paso (ya revisado y verificado)
+
+```powershell
+git switch develop
+git merge --no-ff feature/sprint3-staging
+git branch -d feature/sprint3-staging
+git push origin develop
+git push origin --delete feature/sprint3-staging   # opcional: borrar la remota
+```
+
+### 10.4 Cierre de sprint (release, versión MENOR)
+
+```powershell
+git switch develop; git pull
+git switch -c release-0.3.0
+# bump: [x] del sprint en docs/plan.md + entrada de cierre en docs/changelog.md
+git add -A; git commit -m "chore: bump version to 0.3.0"
+git switch main
+git merge --no-ff release-0.3.0
+git tag -a v0.3.0 -m "Sprint 3: data warehouse"
+git switch develop
+git merge --no-ff release-0.3.0   # "Already up to date" = normal
+git branch -d release-0.3.0
+git push origin main develop --tags
+```
+
+### 10.5 Bug en el último tag ("producción") — hotfix, versión PARCHE
+
+```powershell
+git switch -c hotfix-0.3.1 main     # SIEMPRE desde main, nunca desde develop
+# fix + su entrada en docs/changelog.md (+ checklist en docs/verification.md)
+git add python/ docs/
+git commit -m "fix: ..."
+git switch main
+git merge --no-ff hotfix-0.3.1
+git tag -a v0.3.1 -m "hotfix: ..."
+git switch develop
+git merge --no-ff hotfix-0.3.1      # el fix no se pierde para el próximo sprint
+git branch -d hotfix-0.3.1
+git push origin main develop --tags
+```
+
+### 10.6 ¿Qué rama creo? (decisión en 5 segundos)
+
+| Escenario | Rama | Nace de | Tag |
+|---|---|---|---|
+| Paso del sprint | `feature/*` | `develop` | — |
+| Cierre de sprint | `release-X.Y.0` | `develop` | MENOR `vX.Y.0` |
+| Bug en un tag existente | `hotfix-X.Y.Z` | **`main`** | PARCHE `vX.Y.Z` |
+
+### 10.7 Si el CI sale rojo
+
+1. GitHub → pestaña *Actions* → run fallido → abrir el step rojo y leer el log.
+2. Rojo en push de `feature/*` o `develop` (sin tag): corregir con un commit
+   nuevo en la misma rama (o en una ramita) y push. Nunca mergear con rojo.
+3. Rojo en `main` YA taggeado: `hotfix-X.Y.(Z+1)` desde `main` (caso real:
+   `v0.2.0` rojo por RUF100 → `v0.2.1`, ver changelog).
+
+### 10.8 Inspección (para saber dónde estás)
+
+```powershell
+git status --short
+git log --oneline --graph --all -10
+git branch -a
+git tag -l; git show v0.2.1
 ```
