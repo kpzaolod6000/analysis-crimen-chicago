@@ -36,9 +36,10 @@ n8n · PostgreSQL 16 · Python 3.12 · FastAPI · D3.js · Playwright · Power A
 
 ## Estado
 
-Sprint 1 completado (infra Docker, `raw.crimes`, tests de integración,
-`Makefile` y CI básico). Próximo paso: **Sprint 2 — Ingesta**
-(Socrata → n8n → `raw.crimes`).
+Sprint 2 completado (ingesta Socrata → n8n → `raw.crimes` con bucle por
+ventanas mensuales, log operacional en `ops.pipeline_runs`, data tests de
+calidad y smoke script; ~1 año de datos en dev). Release: `v0.2.0`.
+Próximo paso: **Sprint 3 — Data Warehouse** (staging, dims y `fact_crime`).
 
 Antes de empezar, instala el entorno siguiendo
 [docs/dev-environment.md](docs/dev-environment.md) §7 (Docker Desktop, Node

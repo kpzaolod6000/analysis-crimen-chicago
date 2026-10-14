@@ -1,0 +1,173 @@
+{
+  "name": "Sprint 2 · Socrata → raw.crimes (dev, ventanas mensuales)",
+  "nodes": [
+    {
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-400, 0],
+      "id": "a1e2c3d4-0001-4a01-9f01-000000000001"
+    },
+    {
+      "name": "Ventana dev (1 año)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-180, 0],
+      "id": "a1e2c3d4-0002-4a01-9f01-000000000002",
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1a2b3d4-1001-4a01-9f01-000000000001",
+              "name": "datasetId",
+              "value": "ijzp-q8t2",
+              "type": "string"
+            },
+            {
+              "id": "c1a2b3d4-1002-4a01-9f01-000000000002",
+              "name": "windowStart",
+              "value": "2025-10-01T00:00:00",
+              "type": "string"
+            },
+            {
+              "id": "c1a2b3d4-1003-4a01-9f01-000000000003",
+              "name": "windowEnd",
+              "value": "2026-10-01T00:00:00",
+              "type": "string"
+            },
+            {
+              "id": "c1a2b3d4-1004-4a01-9f01-000000000004",
+              "name": "pageSize",
+              "value": 50000,
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Meses de la ventana",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [40, 0],
+      "id": "a1e2c3d4-0008-4a01-9f01-000000000008",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Genera sub-ventanas mensuales half-open [monthStart, monthEnd) cubriendo [windowStart, windowEnd).\n// Replica de month_windows() en python/src/ingestion/socrata.py (mantener ambas en sync).\n// Regla skill chicago-data-ingestion: backfill por ventanas año/mes; nunca OFFSET profundo sin filtro de fechas.\nconst cfg = $input.first().json;\nconst start = cfg.windowStart;\nconst end = cfg.windowEnd;\nif (start >= end) throw new Error(`windowStart (${start}) debe ser menor que windowEnd (${end})`);\nconst out = [];\nlet cursor = start;\nwhile (cursor < end) {\n  // año y mes del cursor (1-based desde el string ISO naive)\n  const y = Number(cursor.slice(0, 4));\n  const m = Number(cursor.slice(5, 7));\n  // 1° del mes siguiente: Date.UTC(y, m, 1) con m 1-based cae en el mes siguiente\n  // (los meses JS son 0-based) y diciembre rueda a enero del año siguiente.\n  // UTC evita sorpresas de TZ: los timestamps de Socrata son naive y se tratan como texto.\n  const nextIso = new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 19);\n  const monthEnd = nextIso < end ? nextIso : end;\n  out.push({ json: { monthStart: cursor, monthEnd, datasetId: cfg.datasetId, pageSize: cfg.pageSize } });\n  cursor = monthEnd;\n}\nreturn out;"
+      },
+      "notes": "Ej: 2025-10-01 -> 2026-10-01 produce 12 items, uno por mes. Ventanas parciales quedan recortadas (half-open)."
+    },
+    {
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [260, 0],
+      "id": "a1e2c3d4-0009-4a01-9f01-000000000009",
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "notes": "1 mes por iteracion. Output 'loop' alimenta la cadena; el ultimo nodo (log) vuelve a conectar aqui para la siguiente iteracion. Output 'done' no se usa: el resumen se verifica en ops.pipeline_runs."
+    },
+    {
+      "name": "Socrata: fetch mes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 0],
+      "id": "a1e2c3d4-0003-4a01-9f01-000000000003",
+      "parameters": {
+        "method": "GET",
+        "url": "=https://data.cityofchicago.org/resource/{{ $json.datasetId }}.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "$where",
+              "value": "=date >= '{{ $json.monthStart }}' AND date < '{{ $json.monthEnd }}'"
+            },
+            { "name": "$order", "value": "id" },
+            { "name": "$limit", "value": "={{ $json.pageSize }}" }
+          ]
+        },
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          }
+        },
+        "alwaysUnwrapItems": true
+      },
+      "notes": "1 pagina por mes: el maximo historico de Chicago es ~45k registros/mes < 50k (pageSize). Si un mes devolviera pageSize registros, el nodo siguiente lo marca FAILED sin insertar (posible truncamiento). OJO: si un mes devolviera 0 items la cadena se detiene en silencio (n8n no ejecuta nodos sin input); no ocurre en este dataset."
+    },
+    {
+      "name": "Validar + SQL payload (mes)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 0],
+      "id": "a1e2c3d4-0005-4a01-9f01-000000000005",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Validacion + serializacion del mes en curso. Dentro del bucle los conteos\n// deben ser por iteracion: $input.all() esta acotado a esta ejecucion, mientras\n// que $('Nodo').all() agregaria TODAS las iteraciones. Por eso la validacion\n// vive aqui y no en un nodo Filter (reemplaza al Filter del Paso 2).\n// Sin transformaciones de negocio: esas quedan en Postgres.\nconst items = $input.all().map(i => i.json);\nconst month = $('Loop Over Items').item.json; // item actual del bucle (via documentada)\nconst pageSize = Number(month.pageSize);\nconst received = items.length;\nconst valid = items.filter(r => r.id && r.date);\nconst failed = received - valid.length;\n// Guard de truncamiento: si el mes devolvio pageSize registros puede haber\n// quedado cortado. No insertamos nada (payload vacio) y queda FAILED para revision.\nconst truncated = received >= pageSize;\nconst payloadRecords = truncated ? [] : valid;\n// El payload viaja como literal SQL: comillas + escape de apostrofes (' -> '').\nconst payloadSql = \"'\" + JSON.stringify(payloadRecords).replace(/'/g, \"''\") + \"'\";\nconst status = truncated ? 'FAILED' : (failed > 0 ? 'PARTIAL' : 'SUCCESS');\nconst errorMessage = (truncated\n  ? `page_size ${pageSize} alcanzado en ${month.monthStart}: mes posiblemente truncado; requiere paginacion interna`\n  : ''\n).replace(/'/g, \"''\");\nreturn [{ json: {\n  payloadSql,\n  received,\n  valid: valid.length,\n  failed,\n  windowStart: month.monthStart,\n  windowEnd: month.monthEnd,\n  status,\n  errorMessage,\n  finishedAt: new Date().toISOString()\n} }];"
+      },
+      "notes": "Skill chicago-data-ingestion: rechazos (sin id/date) van al log via records_failed, no rompen el run. Un mes truncado queda FAILED y no inserta."
+    },
+    {
+      "name": "raw.crimes upsert (bulk)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [920, 0],
+      "id": "a1e2c3d4-0006-4a01-9f01-000000000006",
+      "credentials": {
+        "postgres": { "id": "REEMPLAZAR_CRED_ID", "name": "chicago-postgres (docker)" }
+      },
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO raw.crimes (\n  id, case_number, date, block, iucr, primary_type, description,\n  location_description, arrest, domestic, beat, district, ward,\n  community_area, fbi_code, x_coordinate, y_coordinate, year,\n  updated_on, latitude, longitude, location\n)\nSELECT\n  r.id,\n  r.case_number,\n  nullif(r.date::text, '')::timestamp,\n  r.block,\n  r.iucr,\n  r.primary_type,\n  r.description,\n  r.location_description,\n  nullif(r.arrest::text, '')::boolean,\n  nullif(r.domestic::text, '')::boolean,\n  nullif(r.beat::text, '')::integer,\n  nullif(r.district::text, '')::integer,\n  nullif(r.ward::text, '')::integer,\n  nullif(r.community_area::text, '')::integer,\n  r.fbi_code,\n  nullif(r.x_coordinate::text, '')::double precision,\n  nullif(r.y_coordinate::text, '')::double precision,\n  nullif(r.year::text, '')::integer,\n  nullif(r.updated_on::text, '')::timestamp,\n  nullif(r.latitude::text, '')::double precision,\n  nullif(r.longitude::text, '')::double precision,\n  r.location\nFROM jsonb_to_recordset({{ $json.payloadSql }}::jsonb) AS r (\n  id text, case_number text, date text, block text, iucr text,\n  primary_type text, description text, location_description text,\n  arrest text, domestic text, beat text, district text, ward text,\n  community_area text, fbi_code text,\n  x_coordinate text, y_coordinate text, year text, updated_on text,\n  latitude text, longitude text, location jsonb\n)\nON CONFLICT (id) DO UPDATE SET\n  case_number = EXCLUDED.case_number,\n  date = EXCLUDED.date,\n  block = EXCLUDED.block,\n  iucr = EXCLUDED.iucr,\n  primary_type = EXCLUDED.primary_type,\n  description = EXCLUDED.description,\n  location_description = EXCLUDED.location_description,\n  arrest = EXCLUDED.arrest,\n  domestic = EXCLUDED.domestic,\n  beat = EXCLUDED.beat,\n  district = EXCLUDED.district,\n  ward = EXCLUDED.ward,\n  community_area = EXCLUDED.community_area,\n  fbi_code = EXCLUDED.fbi_code,\n  x_coordinate = EXCLUDED.x_coordinate,\n  y_coordinate = EXCLUDED.y_coordinate,\n  year = EXCLUDED.year,\n  updated_on = EXCLUDED.updated_on,\n  latitude = EXCLUDED.latitude,\n  longitude = EXCLUDED.longitude,\n  location = EXCLUDED.location,\n  loaded_at = now();",
+        "options": {}
+      },
+      "notes": "UPSERT por id (regla: re-ingesta tolerante a correcciones de Socrata). Sin cambios desde el Paso 2: si el mes viene truncado el payload llega vacio ('[]') y este INSERT no afecta filas."
+    },
+    {
+      "name": "log run en pipeline_runs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1140, 0],
+      "id": "a1e2c3d4-0007-4a01-9f01-000000000007",
+      "credentials": {
+        "postgres": { "id": "REEMPLAZAR_CRED_ID", "name": "chicago-postgres (docker)" }
+      },
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO ops.pipeline_runs (\n  workflow_name, finished_at, status, window_start, window_end,\n  records_received, records_failed, error_message\n)\nVALUES (\n  'sprint2-socrata-raw',\n  now(),\n  '{{ $json.status }}',\n  '{{ $json.windowStart }}'::timestamp,\n  '{{ $json.windowEnd }}'::timestamp,\n  {{ $json.received }},\n  {{ $json.failed }},\n  nullif('{{ $json.errorMessage }}', '')\n);",
+        "options": {}
+      },
+      "notes": "1 fila por mes procesado (observabilidad del backfill). records_inserted/updated: NULL en este MVP (se refina en Sprint 10)."
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Ventana dev (1 año)", "type": "main", "index": 0 }]] },
+    "Ventana dev (1 año)": { "main": [[{ "node": "Meses de la ventana", "type": "main", "index": 0 }]] },
+    "Meses de la ventana": { "main": [[{ "node": "Loop Over Items", "type": "main", "index": 0 }]] },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [{ "node": "Socrata: fetch mes", "type": "main", "index": 0 }]
+      ]
+    },
+    "Socrata: fetch mes": { "main": [[{ "node": "Validar + SQL payload (mes)", "type": "main", "index": 0 }]] },
+    "Validar + SQL payload (mes)": { "main": [[{ "node": "raw.crimes upsert (bulk)", "type": "main", "index": 0 }]] },
+    "raw.crimes upsert (bulk)": { "main": [[{ "node": "log run en pipeline_runs", "type": "main", "index": 0 }]] },
+    "log run en pipeline_runs": { "main": [[{ "node": "Loop Over Items", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "Sprint 2 Paso 3: bucle por ventanas mensuales (1 año = 12 iteraciones). Credential postgres a reasignar tras importar: host=postgres (red docker), port=5432, db=chicago_crimes, user/pass del .env. Cambios vs Paso 2: la validacion se mueve al Code node (conteos por iteracion) y el log registra 1 fila por mes con error_message."
+  }
+}

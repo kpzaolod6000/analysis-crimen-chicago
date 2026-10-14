@@ -26,6 +26,248 @@ Reglas:
 
 ---
 
+## [2026-10-14] Sprint 2 — Cierre del sprint (bump 0.2.0)
+
+**Qué:** Sprint 2 marcado `[x]` en `docs/plan.md` (con nota de que el trigger
+es manual en dev — el Schedule semanal llega con el incremental en Sprint 10)
+y estado del README actualizado (Sprint 2 hecho, próximo Sprint 3).
+**Por qué:** cierre de sprint según git-workflow §5. El bump viaja como
+último commit del feature branch (no había fixes de release que versionar, así
+la rama `release-0.2.0` solo transfiere a `main` + tag `v0.2.0`); en sprints
+futuros con fixes de release, el bump se hará en la rama release como indica
+el doc.
+**Archivos:**
+- `docs/plan.md` — Sprint 2 `[x]`
+- `README.md` — §Estado
+- `docs/changelog.md` — esta entrada
+**Tests:**
+- No aplica (solo documentación). Suite queda en 63 passed (ver Paso 4).
+**Cómo verificar:**
+- `docs/plan.md` muestra Sprint 2 `[x]`; tras el release:
+  `git tag -l` lista `v0.2.0` y `git log --oneline --graph main develop`
+  muestra el merge `--no-ff` del release en ambas ramas.
+
+## [2026-10-13] Sprint 2 · Paso 4 — Data tests de calidad (módulo quality + fixtures)
+
+**Qué:** (a) nuevo `python/src/ingestion/quality.py` con las métricas del skill
+chicago-data-quality como funciones sobre cursor: `duplicate_ids`, `null_ids`,
+`out_of_range_coordinates`, `zero_coordinates` (Socrata a veces emite (0,0)),
+`invalid_community_area` (fuera del catálogo 0–77), `empty_primary_type`,
+`null_counts`/`null_rate` por columna con whitelist (el nombre se interpola
+como identificador SQL vía `psycopg2.sql.Identifier`) y `quality_report`.
+(b) Data tests de integración que siembran 12 filas fixture (`DQ-01..12`,
+casos válidos + inválidos conocidos) en la DB de pruebas (5433) y verifican
+cada métrica contra el conteo calculado a mano. (c) Tests unitarios de la
+lógica pura (cálculo de rate, división por cero, rechazo de columna fuera de
+whitelist) con cursor falso. (d) Refactor de `check_raw_load.py` para consumir
+`quality.py` (una sola fuente de verdad; salida idéntica — variable local
+`quality` renombrada a `warnings` para no chocar con el módulo).
+**Por qué:** último ítem del Sprint 2 ("tests de calidad: unicidad, rangos,
+nulos"). La whitelist + `sql.Identifier` evita inyección por identificador
+(la columna es identificador SQL, no valor parametrizable con `%s`).
+`duplicate_ids`/`null_ids` son trivialmente 0 por la PK — el test valida que
+la métrica corre; el enforcement ya lo cubre `test_raw_schema.py`. La métrica
+`unknown_crime_type` contra catálogo completo queda para Sprint 3 (dims); por
+ahora `empty_primary_type` cubre NULL/vacío.
+**Archivos:**
+- `python/src/ingestion/quality.py` — métricas (nuevo)
+- `python/tests/integration/test_data_quality.py` — 12 tests + fixture (nuevo)
+- `python/tests/unit/test_quality.py` — 3 tests unit (nuevo)
+- `python/tests/integration/conftest.py` — bootstrap sys.path a `python/src`
+  (mismo patrón que `tests/unit/conftest.py`)
+- `python/scripts/check_raw_load.py` — consume `quality.py` (salida idéntica)
+- `docs/verification.md` — checklist del Paso 4 + pasos de cierre del Sprint 2
+**Tests:**
+- `python/tests/unit` → 37 passed (34 + 3) · `python/tests` → 63 passed (48 + 15)
+- `ruff check python` → limpio
+- Datos reales (año cargado en Paso 3): se verifican con `check_raw_load.py`,
+  que ahora comparte las mismas funciones de métrica ya testeadas.
+**Cómo verificar:**
+- Checklist del Paso 4 en `docs/verification.md` (DB de pruebas arriba, pytest,
+  ruff, smoke script contra dev).
+**Pendiente detectado:**
+- Si ruff marca I001 (isort) en `check_raw_load.py` por el import tras
+  `sys.path.insert`, aplicar `ruff check --fix` (el `# noqa: E402` ya cubre E402).
+
+## [2026-10-13] Sprint 2 · Paso 3 — Bucle mensual para la ventana 1 año (workflow n8n)
+
+**Qué:** el workflow pasa de 1 página suelta (MVP del Paso 2) a un bucle por
+ventanas mensuales: `Meses de la ventana` (Code nuevo) genera las sub-ventanas
+half-open y `Loop Over Items` (SplitInBatches v3, batch 1) procesa mes a mes:
+fetch → validar+payload → upsert → log (1 fila en `pipeline_runs` por mes, con
+`error_message`) → retorno al loop. Ventana dev: 2025-10-01 → 2026-10-01
+(12 meses, solapa sept-2026 ya cargado → prueba el UPSERT). Se añadió un guard
+de truncamiento: si un mes devuelve `pageSize` registros (imposible para este
+dataset: máx. histórico ~45k/mes) no se inserta nada y queda `FAILED` con
+mensaje. Se eliminó el nodo Filter: la validación vive en el Code node porque
+dentro del bucle los conteos deben ser por iteración (`$input.all()` acotado a
+la ejecución actual; `$('Nodo').all()` agregaría todas las iteraciones).
+**Por qué:** Paso 3 del plan (ventana 1 año). La regla del skill
+chicago-data-ingestion es backfill por ventanas año/mes (nunca OFFSET profundo
+sin filtro); el bucle mensual la implementa y deja el camino listo para el
+backfill histórico de Sprint 10. Se verificó en el código fuente de n8n que el
+output 0 de SplitInBatches es `done` y el 1 es `loop` (al revés de lo
+intuitivo) y que `$('Loop Over Items').item` es la vía documentada de leer el
+item actual del bucle. `month_windows()` en el helper Python es la réplica
+testeable del JS del nodo (comentarios cruzados en ambos).
+**Archivos:**
+- `n8n/workflows/sprint2-socrata-raw.json` — reescrito (8 nodos, bucle)
+- `python/src/ingestion/socrata.py` — `month_windows()` nuevo
+- `python/tests/unit/test_socrata.py` — 6 tests (TestMonthWindows)
+- `python/tests/unit/test_n8n_workflow.py` — 11 tests estructurales (nuevo)
+- `docs/verification.md` — checklist del Paso 3 (smoke 3 meses + run anual)
+**Tests:**
+- `python/tests/unit` → 34 passed (17 previos + 6 month_windows + 11 workflow)
+- `pytest python/tests -q` → 48 passed (unit + integration) · ruff limpio
+- Los tests estructurales fijan: wiring del bucle (loop-back), conteos por
+  iteración, guard de truncamiento, contratos upsert/log y credenciales como
+  placeholder (anti-export de credenciales reales).
+**Cómo verificar:**
+- Ejecutar el checklist del Paso 3 en `docs/verification.md` (smoke del bucle
+  con 3-4 meses, luego run anual completo + idempotencia + check_raw_load.py).
+**Pendiente detectado:**
+- Si un mes devolviera 0 registros, n8n no ejecuta los nodos siguientes y el
+  bucle se detendría en silencio (no ocurre en este dataset; se detectaría por
+  filas faltantes en pipeline_runs).
+- Paginación interna dentro de un mes (OFFSET) queda diferida: ningún mes
+  histórico supera pageSize; el guard FAIL ruidoso cubre el caso.
+
+## [2026-10-10] Sprint 2 · Paso 2 (fix 2) — CI valida pushes de feature/*
+
+**Qué:** `.github/workflows/ci.yml` ahora dispara también en push a
+`feature/**` (además de main/develop y PRs hacia ellas).
+**Por qué:** el git-workflow exige "ningún merge con CI rojo"; sin el
+trigger de feature, los commits de la rama iban a GitHub sin verificación y
+el CI solo aparecía al abrir el PR. Con este trigger cada push de la rama
+se valida antes del PR.
+**Archivos:**
+- `.github/workflows/ci.yml` — push branches + `feature/**`
+**Tests:**
+- YAML válido (re-validar en el próximo push); el resto del workflow no cambia
+**Cómo verificar:**
+- Push de la rama → pestaña Actions en GitHub muestra el run "ci" en verde
+  (o rojo, y así se corrige antes del PR).
+
+## [2026-10-10] Sprint 2 · Paso 2 (cierre) — Smoke test de carga + primer run SUCCESS
+
+**Qué:** (a) script smoke `python/scripts/check_raw_load.py` que contra dev
+(5432) reporta filas totales de raw.crimes, ventana real de fechas, últimos
+runs de ops.pipeline_runs y advertencias de calidad (duplicados por id,
+coords fuera de rango, ids nulos). (b) El usuario re-importó/corrigió los
+nodos en n8n tras el Fix 1 y ejecutó el primer run real: raw.crimes quedó
+con 19.642 filas (ventana 2026-09), run SUCCESS recibidas=19642/fallidas=0.
+**Por qué:** docs/testing.md §2.4 prevé un smoke script que compruebe la
+fila de log del run; automatiza la verificación post-load sin SQL manual.
+**Archivos:**
+- `python/scripts/check_raw_load.py` — smoke check CLI (nuevo)
+- `docs/verification.md` — Paso 2: ítem 6 (script) + resultado verificado
+**Tests:**
+- Smoke ejecutado: OK - 19642 filas, advertencias 0. Suite pytest sigue en
+  verde (31), ruff limpio.
+**Cómo verificar:**
+- `.\\.venv\\Scripts\\python.exe python/scripts/check_raw_load.py` → OK
+- Re-run del workflow n8n → count(*) estable (UPSERT), run_id nuevo.
+
+## [2026-10-10] Sprint 2 · Paso 2 (fix 1) — Payload como literal SQL en el workflow n8n
+
+**Qué:** fij del error "Syntax error at line 30 near '['" detectado en el
+primer run manual: n8n interpola `{{ $json.payload }}` inyectando el JSON
+SIN comillas dentro del SQL (jsonb_to_recordset([...) → sintaxis inválida;
+además los registros con apóstrofes (ej. CTA "L" TRAIN) romperían el
+literal). El Code node ahora emite `payloadSql` — el JSON envuelto en
+comillas simples con `'` escapado a `''` — y el nodo upsert usa
+`jsonb_to_recordset({{ $json.payloadSql }}::jsonb)`.
+**Por qué:** expresiones de n8n son interpolación textual; un JSON crudo no
+es un literal SQL válido.
+**Archivos:**
+- `n8n/workflows/sprint2-socrata-raw.json` — jsCode (payloadSql) + query
+**Tests:**
+- JSON re-validado (payloadSql presente en ambos nodos; no queda
+  `{{ $json.payload }}`)
+**Cómo verificar:**
+- Re-run del workflow desde n8n (con los 2 nodos ya corregidos en la GUI
+  o re-importando el JSON); debe completar y poblar raw.crimes.
+
+## [2026-10-10] Sprint 2 · Paso 2 — Workflow n8n Socrata→raw.crimes + pipeline_runs
+
+**Qué:** (a) migración `002_operational.sql` con la capa operacional:
+schema `ops` + tabla `ops.pipeline_runs` (log de runs: status RUNNING/SUCCESS/
+PARTIAL/FAILED, conteos por run) + 6 tests de integración nuevos. (b) Workflow
+n8n exportable (`manualTrigger` → Set ventana dev 2026-09→10 → HTTP Socrata
+($where half-open + ORDER BY id + $limit 50000) → Filter valida id/date → Code
+serializa a JSON (paid orchestration, transformación queda en SQL) → Postgres
+INSERT bulk con `jsonb_to_recordset` + UPSERT `ON CONFLICT (id)` → log del run).
+**Por qué:** primer pipeline end-to-end (Socrata → n8n → raw.crimes). El upsert
+bulk en una sola sentencia evita ~20k round-trips n8n↔PG (la validación
+permanece en n8n según la división de trabajo). records_inserted/updated quedan
+NULL en este MVP (se refina en Sprint 10); la paginación en bucle para ventanas
+anuales llega en el Paso 3.
+**Archivos:**
+- `database/migrations/002_operational.sql` — schema ops + pipeline_runs (nuevo)
+- `python/tests/integration/test_operational_schema.py` — 6 tests (nuevo)
+- `n8n/workflows/sprint2-socrata-raw.json` — workflow exportable (nuevo)
+- `docs/verification.md` — checklist del Paso 2 (importar, credencial, run,
+  re-run idempotente, queries de smoke)
+**Tests:**
+- `python/tests/integration` → 14 passed (8 raw + 6 operational); total 31
+- Ruff limpio; `002_operational.sql` aplicado y verificado en dev (CREATE x3)
+**Cómo verificar:**
+- Ejecutar el checklist del Paso 2 en `docs/verification.md` (importar
+  workflow, crear credencial `chicago-postgres (docker)`, run manual, y las
+  3 queries de smoke + re-run idempotente).
+**Pendiente detectado:**
+- Mayor riesgo del JSON exportado a ciegas: `typeVersion` de los nodos n8n;
+  si el import falla, abrir el nodo en la GUI y ajustar (params esenciales
+  están completos).
+
+## [2026-10-10] Sprint 2 — Checklist de verificación por paso (docs/verification.md)
+
+**Qué:** nuevo `docs/verification.md`: checklist accionable por sprint/paso
+con (1) los objetos revisables, (2) las verificaciones de contenido
+(tests/lint/manual con comandos exactos) y (3) los pasos git
+(add/commit/push en el flujo GitFlow). Ya completado para todo Sprint 1 y el
+Paso 1 del Sprint 2; los pasos siguientes se llenan al implementarlos.
+**Por qué:** el usuario pidió guardar por sprint los pasos de verificación y
+git que hasta ahora solo vivían en el chat y dispersos entre docs.
+**Archivos:**
+- `docs/verification.md` — checklist por paso (nuevo)
+- `AGENTS.md` — regla 2 extendida: todo paso debe dejar su checklist aquí
+**Tests:**
+- No aplica (solo documentación).
+**Cómo verificar:**
+- Ejecutar tal cual la checklist del Sprint 2 · Paso 1 (pytest 17/25 + ruff
+  + git add/commit/push); los comandos son los ya validados en esta sesión.
+
+## [2026-10-10] Sprint 2 · Paso 1 — Helper Python Socrata/SoQL + tests unitarios
+
+**Qué:** primer módulo de `python/src/ingestion/`: `socrata.py` con 4 piezas —
+`build_params` (construye `$where/$select/$order/$limit/$offset/$$app_token`),
+`date_window_where` (rango half-open `date >= start AND date < end`),
+`fetch_page` (GET JSON con urllib, sin dependencias nuevas) y `paginate`
+(generador por páginas con `ORDER BY id` determinista, para alimentar al
+workflow n8n). 17 tests unitarios nuevos sin red (fake fetch + monkeypatch).
+**Por qué:** Sprint 2 pide "helper opcional para explorar Socrata / construir
+queries SoQL"; centraliza las reglas de la skill `chicago-data-ingestion`
+(nunca OFFSET profundo sin filtro de fechas, ORDER BY id, límite de página
+<= 50000) en un solo lugar testable. `urllib` del stdlib evita sumar
+`requests` al requirements.
+**Archivos:**
+- `python/src/ingestion/socrata.py` — helper (nuevo)
+- `python/src/ingestion/__init__.py` — paquete (nuevo)
+- `python/tests/unit/conftest.py` — sys.path hacia `python/src` (nuevo)
+- `python/tests/unit/test_socrata.py` — 17 tests (nuevo)
+**Tests:**
+- `python/tests/unit` → 17 passed · total 25 passed (unit + integration)
+- `ruff check python` → All checks passed (se corrigieron: import Callable
+  desde collections.abc, TypeError para respuesta no-lista, orden de imports,
+  variable dummy `_calls`)
+**Cómo verificar:**
+- `pytest python/tests/unit -v`
+- `ruff check python`
+- Aún sin red: en el Paso 2/3 el helper se consume solo desde n8n vía HTTP;
+  para explorar a mano: `socrata.fetch_page("ijzp-q8t2",
+  socrata.build_params(where=socrata.date_window_where(...), limit=5))`
+
 ## [2026-10-10] Sprint 1 — Modelo Git alineado al artículo de nvie (GitFlow)
 
 **Qué:** reescrito `docs/git-workflow.md` para seguir el artículo

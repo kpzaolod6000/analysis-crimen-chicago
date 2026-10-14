@@ -1,0 +1,204 @@
+# Verificación por sprint y paso — checklist de pruebas + git
+
+**Propósito:** cada paso revisable del plan deja aquí sus comandos de
+verificación (contenido/tests) y sus comandos git. Se llena ANTES de dar el
+paso por terminado (regla de `AGENTS.md`); es el complemento accionable del
+registro histórico de `docs/changelog.md` y de la estrategia de
+[docs/testing.md](testing.md).
+
+## Cómo se usa
+
+1. Al cerrar un paso, el asistente agrega una sub-sección con: objetos
+   revisables, verificación (tests/lint/manual) y git (add/commit/push).
+2. Vos corrés todo, marcanos `[x]` (o avisanos y lo marcamos). Un paso solo
+   está cerrado cuando su checklist está en verde **y quedó commiteado**.
+
+---
+
+## Sprint 1 — Fundaciones (cerrado, tag `v0.1.0`)
+
+- **Objetos:** `docker-compose.yml` + `.env(*.example)`,
+  `database/migrations/001_raw.sql`, `python/tests/integration/`,
+  `Makefile`, `python/requirements(.dev)?.txt`, `.github/workflows/ci.yml`,
+  `docker-compose.test.yml`.
+- **Verificar:**
+  - `docker compose up -d` → postgres `healthy` + n8n
+  - `docker compose exec -T postgres psql -U postgres -d chicago_crimes
+    -f /database/migrations/001_raw.sql` → CREATE (solo NOTICE si ya aplica)
+  - `docker compose -f docker-compose.test.yml up -d`
+  - `pytest python/tests/integration -v` → 8 passed
+  - `ruff check python` → passed
+- **Git:** commits individuales `feat:`/`chore:` en `main`; release con
+  `release-*`→ no aplicó (pre-GitFlow); el release quedó como tag
+  `v0.1.0` anotado en `main` + push `origin main v0.1.0`.
+
+---
+
+## Sprint 2 — Ingesta
+
+### Paso 1 — Helper Socrata/SoQL `[x]`
+
+- **Objetos revisables:**
+  - `python/src/ingestion/socrata.py` — helper (build_params,
+    date_window_where, fetch_page, paginate)
+  - `python/src/ingestion/__init__.py` — paquete
+  - `python/tests/unit/conftest.py` — bootstrap sys.path
+  - `python/tests/unit/test_socrata.py` — 17 tests
+- **Verificar contenido:**
+  - `pytest python/tests/unit -v` → 17 passed
+  - `pytest python/tests -q` → 25 passed (unit + integration)
+  - `ruff check python` → All checks passed
+- **Git:**
+  ```powershell
+  git status --short                       # ~6 archivos ?? / M en python/ y docs
+  git add python/ docs/changelog.md docs/verification.md
+  git commit -m "feat: add socrata soql helper with unit tests"
+  git push -u origin feature/sprint2-socrata-helper
+  # integración con red: merge --no-ff a develop + borrar rama (§4 git-workflow.md)
+  ```
+
+### Paso 2 — Workflow n8n → raw.crimes `[x]` (pendiente de run manual tuyo)
+
+- **Objetos revisables:**
+  - `database/migrations/002_operational.sql` — schema `ops` + `ops.pipeline_runs`
+  - `python/tests/integration/test_operational_schema.py` — 6 tests
+  - `n8n/workflows/sprint2-socrata-raw.json` — workflow exportable
+    (Trigger → Ventana → HTTP Socrata → Validar → SQL payload →
+    upsert bulk en raw.crimes → log en pipeline_runs)
+- **Verificar contenido (hecho por el asistente):**
+  - `pytest python/tests -q` → 31 passed · `ruff check python` → passed
+  - JSON del workflow parsea (7 nodos, 6 conexiones)
+  - `002_operational.sql` aplicado en dev (`psql -f`, CREATE x3)
+- **Verificar en n8n (lo haces vos, ~5 min):**
+  > Fix 1 aplicado (2026-10-10): si importaste el JSON ANTES de este fix,
+  > corregir en la GUI: (1) nodo "SQL payload..." → pegar el jsCode nuevo
+  > (genera `payloadSql` con comillas+escape); (2) nodo "raw.crimes upsert
+  > (bulk)" → línea `FROM jsonb_to_recordset(...)` usar
+  > `{{ $json.payloadSql }}`. O re-importar el JSON actualizado.
+  1. Importar: http://localhost:5673 → menu ⋯ → *Import from File* →
+     `n8n/workflows/sprint2-socrata-raw.json`. Si un nodo pide completar
+     config al abrir, revisar que los parámetros coincidan con el JSON.
+  2. Crear credencial (1a vez): en los 2 nodos Postgres → *Create new
+     credential* con **host `postgres`** (red docker), port `5432`,
+     DB `chicago_crimes`, user/pass del `.env`. Nombrarla
+     `chicago-postgres (docker)` y asignarla a ambos nodos.
+  3. Ejecutar el workflow (botón *Execute workflow*). Ventana dev:
+     2026-09-01 → 2026-10-01 (~20k registros, 1 request, 1-2 min).
+  4. Chequear resultados en DB:
+     ```powershell
+     docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT count(*) FROM raw.crimes;"
+     docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT min(date), max(date) FROM raw.crimes;"
+     docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT run_id, status, records_received, records_failed FROM ops.pipeline_runs ORDER BY run_id DESC LIMIT 3;"
+     ```
+  5. Re-run del workflow → `count(*)` NO cambia (UPSERT por `id`) y aparece
+     un segundo `run_id` en `pipeline_runs`.
+  6. **Smoke test automático** (verifica todo lo anterior + calidad mínima):
+     ```powershell
+     .\.venv\Scripts\python.exe python/scripts/check_raw_load.py
+     ```
+     Esperado: filas ≈ window (excluye parcial), ventana sept-2026 completa,
+     run SUCCESS/PARTIAL en pipeline_runs, advertencias todas en 0.
+- ✅ **Verificado el 2026-10-10:** carga SUCCESS, 19.642 filas (19642
+  recibidas, 0 fallidas), 0 duplicados, 0 coords inválidas, 0 ids nulos.
+- **Git:**
+  ```powershell
+  git add database/ python/tests/integration/test_operational_schema.py n8n/ docs/
+  git commit -m "feat: socrata-to-raw n8n workflow with pipeline_runs logging"
+  git push
+  ```
+
+### Paso 3 — Ventana 1 año (bucle mensual) `[ ]` (pendiente de run manual tuyo)
+
+- **Objetos revisables:**
+  - `n8n/workflows/sprint2-socrata-raw.json` — reescrito: `Set ventana →
+    Meses de la ventana (Code) → Loop Over Items (batch 1) → Socrata: fetch
+    mes → Validar + SQL payload (mes) → upsert → log por mes →` retorno al loop
+  - `python/src/ingestion/socrata.py` — `month_windows()` (réplica testeable
+    del algoritmo del nodo "Meses de la ventana"; mantener ambas en sync)
+  - `python/tests/unit/test_socrata.py` — 6 tests nuevos (TestMonthWindows)
+  - `python/tests/unit/test_n8n_workflow.py` — 11 tests estructurales (nuevo)
+- **Verificar contenido:**
+  - `pytest python/tests/unit -v` → 34 passed (17 previos + 6 + 11)
+  - `pytest python/tests -q` → 48 passed (unit + integration)
+  - `ruff check python` → All checks passed
+- **Verificar en n8n (lo haces vos):**
+  1. **Borrar** el workflow importado en el Paso 2 (evita duplicados) e
+     importar `n8n/workflows/sprint2-socrata-raw.json` (menu ⋯ → *Import
+     from File*). Reasignar la credencial `chicago-postgres (docker)` en los
+     2 nodos Postgres.
+  2. **Smoke del bucle (recomendado, ~5 min):** en "Ventana dev (1 año)"
+     cambiar `windowStart` a `2026-06-01T00:00:00` (windowEnd queda
+     `2026-10-01T00:00:00`) y ejecutar. Esperado: 4 iteraciones (jun→sep),
+     4 filas nuevas en `ops.pipeline_runs` (sep ya existía: UPSERT no duplica).
+     ```powershell
+     docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT window_start, status, records_received, records_failed, error_message FROM ops.pipeline_runs ORDER BY run_id DESC LIMIT 6;"
+     docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT count(*) FROM raw.crimes;"
+     ```
+  3. **Run completo 1 año (~15-30 min):** restaurar `windowStart` a
+     `2025-10-01T00:00:00` y ejecutar. Esperado: 12 filas nuevas en
+     `pipeline_runs` (una por mes, status SUCCESS/PARTIAL, `error_message`
+     NULL), `min(date)>=2025-10-01` y `max(date)<2026-10-01` en raw.crimes.
+     ```powershell
+     docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT min(date), max(date), count(*) FROM raw.crimes;"
+     docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT count(*) AS runs, sum(records_received) AS recibidos, sum(records_failed) AS fallidos FROM ops.pipeline_runs WHERE window_start >= '2025-10-01';"
+     ```
+  4. **Idempotencia:** re-ejecutar el workflow completo → `count(*)` de
+     raw.crimes NO cambia (UPSERT por `id`); aparecen 12 `run_id` nuevos.
+  5. **Smoke automático:** `.\.venv\Scripts\python.exe python/scripts/check_raw_load.py`
+     → filas ≈ ventana anual, advertencias en 0.
+- **Riesgos conocidos (si el run falla, revisar esto):**
+  - `$('Loop Over Items').item` en "Validar + SQL payload (mes)": es la vía
+    documentada para leer el item actual del bucle. Si n8n lanza error de
+    expresión ahí, abrir el nodo y revisar que el nombre del nodo de bucle
+    sea exactamente `Loop Over Items`.
+  - Si un mes devolviera 0 registros, la cadena se detiene en silencio
+    (n8n no ejecuta nodos sin input). No ocurre en este dataset (meses
+    siempre con datos); se detectaría porque faltan filas en pipeline_runs.
+  - Guard de truncamiento: ningún mes histórico supera ~45k registros
+    (< pageSize 50000). Si un mes quedara `FAILED` con ese mensaje, avisar:
+    requeriría paginación interna (prevista para Sprint 10).
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint2-year-window develop
+  git add python/ n8n/ docs/
+  git commit -m "feat: add monthly loop to n8n workflow for 1-year window"
+  git push -u origin feature/sprint2-year-window
+  # tras CI verde: merge --no-ff a develop (§4 git-workflow.md)
+  ```
+
+### Paso 4 — Data tests de calidad (unicidad, rangos, nulos) `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `python/src/ingestion/quality.py` — métricas de calidad (nuevo; única
+    fuente de verdad compartida por tests y smoke script)
+  - `python/tests/integration/test_data_quality.py` — 12 tests sobre 12
+    filas fixture sembradas (nuevo)
+  - `python/tests/unit/test_quality.py` — 3 tests unit con cursor falso (nuevo)
+  - `python/tests/integration/conftest.py` — bootstrap sys.path a `python/src`
+  - `python/scripts/check_raw_load.py` — refactor: consume `quality.py`
+    (salida idéntica; variable local `quality` renombrada a `warnings`)
+- **Verificar contenido:**
+  - `docker compose -f docker-compose.test.yml up -d` (si no está levantada)
+  - `pytest python/tests/unit -v` → 37 passed
+  - `pytest python/tests -q` → 63 passed (unit + integration)
+  - `ruff check python` → All checks passed
+  - Smoke sin cambios de comportamiento (contra dev, con datos del Paso 3):
+    `.\.venv\Scripts\python.exe python/scripts/check_raw_load.py` → misma
+    salida de siempre (3 advertencias en 0)
+- **Fixture sembrado (esperado calculado a mano):** 12 filas `DQ-01..12` →
+  date nulo=1, lat/lon nulos=1, community_area nulos=2, primary_type nulos=0
+  (vacío≠NULL), coords fuera de rango=1, coords (0,0)=1, community_area
+  inválida=1, primary_type vacío=1, duplicados=0, ids nulos=0.
+- **Cierre del Sprint 2 (tras verificar este paso):**
+  1. Confirmar que el Paso 3 quedó verificado (12 runs SUCCESS del año).
+  2. Avisar al asistente → marca Sprint 2 `[x]` en `docs/plan.md` y
+     actualiza el estado del README.
+  3. Git (lo haces vos):
+     ```powershell
+     git switch -c feature/sprint2-data-tests develop
+     git add python/ docs/
+     git commit -m "feat: add data quality metrics and integration data tests"
+     git push -u origin feature/sprint2-data-tests
+     # tras CI verde: merge --no-ff a develop; luego release según
+     # git-workflow.md §9: rama release-0.2.0 → main + tag v0.2.0 → back-merge a develop
+     ```
