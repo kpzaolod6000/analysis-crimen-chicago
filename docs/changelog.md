@@ -26,6 +26,27 @@ Reglas:
 
 ---
 
+## [2026-10-14] Docs — Cheat sheet de git por escenario + sección GitHub Actions
+
+**Qué:** en `docs/git-workflow.md` se amplió §8 (ahora "CI y ramas (GitHub
+Actions)": triggers de ci.yml —push a main/develop/feature/** y PRs—, pasos
+del job, servicio Postgres de GitHub en 5433 y la regla del drift de ruff) y
+se añadió §10: cheat sheet con los comandos de los 5 escenarios habituales
+(empezar paso, guardar avance, terminar paso, release de sprint, hotfix) más
+una tabla de decisión de ramas, protocolo de CI rojo y comandos de inspección.
+**Por qué:** el usuario pidió guardar los comandos de cada escenario en un md
+(los flujos de Sprint 2 + hotfix 0.2.1 vivían solo en el chat); git-workflow.md
+ya era la fuente de git y queda como única referencia. La versión del bump viaja
+como feature branch propia (docs-only, después del hotfix).
+**Archivos:**
+- `docs/git-workflow.md` — §8 ampliado + §10 nuevo
+- `docs/changelog.md`, `docs/verification.md` — esta entrada y su checklist
+**Tests:**
+- No aplica (solo documentación).
+**Cómo verificar:**
+- Leer §10 y comparar los 5 escenarios con lo realmente ejecutado en
+  Sprint 2 y el hotfix 0.2.1 (flujos idénticos salvo el bump en rama release).
+
 ## [2026-10-14] Hotfix 0.2.1 — RUF100: noqa sin usar en check_raw_load.py
 
 **Qué:** eliminado el comentario `# noqa: E402` de la línea 23 de

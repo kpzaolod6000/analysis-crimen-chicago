@@ -235,3 +235,25 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   de ruff en `requirements-dev.txt` (ej. `ruff==0.x.y` — consultar
   `ruff --version` del CI) para que local y CI linteen igual; el drift de
   versión es por qué tu local no reportó RUF100 y el CI sí.
+
+## Docs — Cheat sheet de git + sección GitHub Actions (git-workflow.md)
+
+- **Objetos revisables:**
+  - `docs/git-workflow.md` — §8 ampliado (triggers de ci.yml, pasos del job,
+    servicio Postgres de GitHub, drift de ruff) + §10 nuevo: cheat sheet con
+    comandos por escenario (empezar paso, guardar avance, terminar paso,
+    release, hotfix, decisión de rama, CI rojo, inspección).
+- **Verificar contenido:**
+  - Leer §10 y comparar con los flujos realmente ejecutados en Sprint 2 y
+    el hotfix 0.2.1 (deben coincidir).
+- **Git:**
+  ```powershell
+  git switch -c feature/docs-git-cheatsheet develop
+  git add docs/
+  git commit -m "docs: add git cheat sheet and CI workflow reference"
+  git push -u origin feature/docs-git-cheatsheet
+  git switch develop
+  git merge --no-ff feature/docs-git-cheatsheet
+  git branch -d feature/docs-git-cheatsheet
+  git push origin develop
+  ```
