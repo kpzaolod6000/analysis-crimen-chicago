@@ -26,6 +26,22 @@ Reglas:
 
 ---
 
+## [2026-10-10] Sprint 2 · Paso 2 (fix 2) — CI valida pushes de feature/*
+
+**Qué:** `.github/workflows/ci.yml` ahora dispara también en push a
+`feature/**` (además de main/develop y PRs hacia ellas).
+**Por qué:** el git-workflow exige "ningún merge con CI rojo"; sin el
+trigger de feature, los commits de la rama iban a GitHub sin verificación y
+el CI solo aparecía al abrir el PR. Con este trigger cada push de la rama
+se valida antes del PR.
+**Archivos:**
+- `.github/workflows/ci.yml` — push branches + `feature/**`
+**Tests:**
+- YAML válido (re-validar en el próximo push); el resto del workflow no cambia
+**Cómo verificar:**
+- Push de la rama → pestaña Actions en GitHub muestra el run "ci" en verde
+  (o rojo, y así se corrige antes del PR).
+
 ## [2026-10-10] Sprint 2 · Paso 2 (cierre) — Smoke test de carga + primer run SUCCESS
 
 **Qué:** (a) script smoke `python/scripts/check_raw_load.py` que contra dev
