@@ -20,7 +20,7 @@ import psycopg2
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from ingestion import quality  # noqa: E402
+from ingestion import quality
 
 
 def query(cur, sql):

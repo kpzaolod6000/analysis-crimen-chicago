@@ -202,3 +202,36 @@ registro histórico de `docs/changelog.md` y de la estrategia de
      # tras CI verde: merge --no-ff a develop; luego release según
      # git-workflow.md §9: rama release-0.2.0 → main + tag v0.2.0 → back-merge a develop
      ```
+
+## Hotfix 0.2.1 — RUF100 (noqa sin usar) en check_raw_load.py
+
+- **Objetos revisables:**
+  - `python/scripts/check_raw_load.py` — se elimina el comentario
+    `# noqa: E402` (única directiva noqa del repo). E402 no está activado en
+    los defaults de ruff (no hay `ruff.toml`/`pyproject.toml`), así que la
+    directiva era "unused" y RUF100 la reportaba: CI de `v0.2.0` rojo en lint.
+- **Verificar contenido:**
+  - `ruff check python` → All checks passed (local Y en CI tras el push)
+  - Suite pytest sin cambios (el script pierde solo un comentario)
+- **Git:**
+  ```powershell
+  git switch -c hotfix-0.2.1 main
+  git add python/scripts/check_raw_load.py docs/changelog.md docs/verification.md
+  git commit -m "fix: remove unused noqa directive (RUF100) in check_raw_load"
+  git switch main
+  git merge --no-ff hotfix-0.2.1
+  git tag -a v0.2.1 -m "hotfix: RUF100 lint in check_raw_load"
+  git switch develop
+  git merge --no-ff hotfix-0.2.1
+  git branch -d hotfix-0.2.1
+  git push origin main develop --tags
+  ```
+- **Limpieza opcional (ramas ya fusionadas que quedaron):**
+  ```powershell
+  git branch -d release-0.2.0 feature/sprint2-paso3-year-loop feature/sprint2-socrata-helper
+  git push origin --delete feature/sprint2-paso3-year-loop
+  ```
+- **Mejora propuesta (para otro cambio, no este hotfix):** fijar la versión
+  de ruff en `requirements-dev.txt` (ej. `ruff==0.x.y` — consultar
+  `ruff --version` del CI) para que local y CI linteen igual; el drift de
+  versión es por qué tu local no reportó RUF100 y el CI sí.
