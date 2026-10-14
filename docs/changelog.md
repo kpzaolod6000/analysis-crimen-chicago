@@ -26,6 +26,30 @@ Reglas:
 
 ---
 
+## [2026-10-14] Hotfix 0.2.1 — RUF100: noqa sin usar en check_raw_load.py
+
+**Qué:** eliminado el comentario `# noqa: E402` de la línea 23 de
+`python/scripts/check_raw_load.py` (la única directiva noqa del repo).
+**Por qué:** no existe `ruff.toml`/`pyproject.toml` y ruff NO tiene E402
+activado por defecto → la directiva era "unused" y RUF100 la reportaba,
+dejando el CI de `v0.2.0` rojo en `make lint`. Corrige la predicción del Paso
+4 (que anticipaba un I001: el import tras `sys.path.insert` no ofende a la
+config vigente; el problema fue el noqa mismo). Como `v0.2.0` ya está
+taggeado en `main`, va como hotfix de versión PARCHE (git-workflow §6).
+**Archivos:**
+- `python/scripts/check_raw_load.py` — se elimina la directiva
+- `docs/changelog.md`, `docs/verification.md` — esta entrada + checklist
+**Tests:**
+- Sin cambios de comportamiento: Python ignora `noqa` (es un comentario
+  normal; solo el linter lo interpreta). Suite queda en 63 passed.
+**Cómo verificar:**
+- `ruff check python` → All checks passed (local y CI en verde tras el push)
+- Tras el hotfix flow: `git tag -l` lista `v0.2.1`.
+**Pendiente detectado:**
+- Pinnear `ruff>=0.8` a versión exacta en `requirements-dev.txt`: el CI
+  instala ruff fresco (última) y el venv local quedó atrás; ese drift explica
+  que local no reportara RUF100 y el CI sí.
+
 ## [2026-10-14] Sprint 2 — Cierre del sprint (bump 0.2.0)
 
 **Qué:** Sprint 2 marcado `[x]` en `docs/plan.md` (con nota de que el trigger
