@@ -1,0 +1,177 @@
+{
+  "name": "Sprint 2 · Socrata → raw.crimes (dev, 1 mes)",
+  "nodes": [
+    {
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-400, 0],
+      "id": "a1e2c3d4-0001-4a01-9f01-000000000001"
+    },
+    {
+      "name": "Ventana dev (1 mes)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-180, 0],
+      "id": "a1e2c3d4-0002-4a01-9f01-000000000002",
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1a2b3d4-1001-4a01-9f01-000000000001",
+              "name": "datasetId",
+              "value": "ijzp-q8t2",
+              "type": "string"
+            },
+            {
+              "id": "c1a2b3d4-1002-4a01-9f01-000000000002",
+              "name": "windowStart",
+              "value": "2026-09-01T00:00:00",
+              "type": "string"
+            },
+            {
+              "id": "c1a2b3d4-1003-4a01-9f01-000000000003",
+              "name": "windowEnd",
+              "value": "2026-10-01T00:00:00",
+              "type": "string"
+            },
+            {
+              "id": "c1a2b3d4-1004-4a01-9f01-000000000004",
+              "name": "pageSize",
+              "value": 50000,
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Socrata: fetch ventana",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [40, 0],
+      "id": "a1e2c3d4-0003-4a01-9f01-000000000003",
+      "parameters": {
+        "method": "GET",
+        "url": "=https://data.cityofchicago.org/resource/{{ $json.datasetId }}.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "$where",
+              "value": "=date >= '{{ $json.windowStart }}' AND date < '{{ $json.windowEnd }}'"
+            },
+            { "name": "$order", "value": "id" },
+            { "name": "$limit", "value": "={{ $json.pageSize }}" }
+          ]
+        },
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          }
+        },
+        "alwaysUnwrapItems": true
+      },
+      "notes": "MVP: 1 pagina si la ventana <= 50000 registros. La paginacion por bucle se agrega en el Paso 3 (ventana 1 anio)."
+    },
+    {
+      "name": "Validar (id y date presentes)",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [260, 0],
+      "id": "a1e2c3d4-0004-4a01-9f01-000000000004",
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "f1a2b3d4-2001-4a01-9f01-000000000001",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty", "singleValue": true }
+            },
+            {
+              "id": "f1a2b3d4-2002-4a01-9f01-000000000002",
+              "leftValue": "={{ $json.date }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty", "singleValue": true }
+            }
+          ]
+        },
+        "typeFilter": { "exclude": [] },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "notes": "Skill chicago-data-ingestion: rechazos van a log, no rompen el run. Los conteos de validos/invalidos se sacan en el nodo SQL payload."
+    },
+    {
+      "name": "SQL payload (contados + serializados)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 0],
+      "id": "a1e2c3d4-0005-4a01-9f01-000000000005",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Orquestacion: serializar registros validos a JSON para un INSERT en bloque (jsonb_to_recordset). Sin transformaciones de negocio (esas quedan en Postgres).\nconst records = $('Validar (id y date presentes)').all().map(i => i.json);\nconst received = $('Socrata: fetch ventana').all().length;\nconst failed = received - records.length;\nconst config = $('Ventana dev (1 mes)').first().json;\n// El payload viaja como literal SQL: comillas + escape de apóstrofes ('' -> '').\nconst payloadSql = \"'\" + JSON.stringify(records).replace(/'/g, \"''\") + \"'\";\nreturn [{\n  json: {\n    payloadSql,\n    received,\n    valid: records.length,\n    failed,\n    windowStart: config.windowStart,\n    windowEnd: config.windowEnd,\n    status: failed > 0 ? 'PARTIAL' : 'SUCCESS',\n    finishedAt: new Date().toISOString()\n  }\n}];"
+      }
+    },
+    {
+      "name": "raw.crimes upsert (bulk)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [700, 0],
+      "id": "a1e2c3d4-0006-4a01-9f01-000000000006",
+      "credentials": {
+        "postgres": { "id": "REEMPLAZAR_CRED_ID", "name": "chicago-postgres (docker)" }
+      },
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO raw.crimes (\n  id, case_number, date, block, iucr, primary_type, description,\n  location_description, arrest, domestic, beat, district, ward,\n  community_area, fbi_code, x_coordinate, y_coordinate, year,\n  updated_on, latitude, longitude, location\n)\nSELECT\n  r.id,\n  r.case_number,\n  nullif(r.date::text, '')::timestamp,\n  r.block,\n  r.iucr,\n  r.primary_type,\n  r.description,\n  r.location_description,\n  nullif(r.arrest::text, '')::boolean,\n  nullif(r.domestic::text, '')::boolean,\n  nullif(r.beat::text, '')::integer,\n  nullif(r.district::text, '')::integer,\n  nullif(r.ward::text, '')::integer,\n  nullif(r.community_area::text, '')::integer,\n  r.fbi_code,\n  nullif(r.x_coordinate::text, '')::double precision,\n  nullif(r.y_coordinate::text, '')::double precision,\n  nullif(r.year::text, '')::integer,\n  nullif(r.updated_on::text, '')::timestamp,\n  nullif(r.latitude::text, '')::double precision,\n  nullif(r.longitude::text, '')::double precision,\n  r.location\nFROM jsonb_to_recordset({{ $json.payloadSql }}::jsonb) AS r (\n  id text, case_number text, date text, block text, iucr text,\n  primary_type text, description text, location_description text,\n  arrest text, domestic text, beat text, district text, ward text,\n  community_area text, fbi_code text,\n  x_coordinate text, y_coordinate text, year text, updated_on text,\n  latitude text, longitude text, location jsonb\n)\nON CONFLICT (id) DO UPDATE SET\n  case_number = EXCLUDED.case_number,\n  date = EXCLUDED.date,\n  block = EXCLUDED.block,\n  iucr = EXCLUDED.iucr,\n  primary_type = EXCLUDED.primary_type,\n  description = EXCLUDED.description,\n  location_description = EXCLUDED.location_description,\n  arrest = EXCLUDED.arrest,\n  domestic = EXCLUDED.domestic,\n  beat = EXCLUDED.beat,\n  district = EXCLUDED.district,\n  ward = EXCLUDED.ward,\n  community_area = EXCLUDED.community_area,\n  fbi_code = EXCLUDED.fbi_code,\n  x_coordinate = EXCLUDED.x_coordinate,\n  y_coordinate = EXCLUDED.y_coordinate,\n  year = EXCLUDED.year,\n  updated_on = EXCLUDED.updated_on,\n  latitude = EXCLUDED.latitude,\n  longitude = EXCLUDED.longitude,\n  location = EXCLUDED.location,\n  loaded_at = now();",
+        "options": {}
+      },
+      "notes": "UPSERT por id (regla: re-ingesta tolerante a correcciones de Socrata)."
+    },
+    {
+      "name": "log run en pipeline_runs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [920, 0],
+      "id": "a1e2c3d4-0007-4a01-9f01-000000000007",
+      "credentials": {
+        "postgres": { "id": "REEMPLAZAR_CRED_ID", "name": "chicago-postgres (docker)" }
+      },
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO ops.pipeline_runs (\n  workflow_name, finished_at, status, window_start, window_end,\n  records_received, records_failed\n)\nVALUES (\n  'sprint2-socrata-raw',\n  now(),\n  '{{ $json.status }}',\n  '{{ $json.windowStart }}'::timestamp,\n  '{{ $json.windowEnd }}'::timestamp,\n  {{ $json.received }},\n  {{ $json.failed }}\n);",
+        "options": {}
+      },
+      "notes": "records_inserted/updated: NULL en este MVP (se refina en Sprint 10); los conteos verificables viven en raw.crimes."
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Ventana dev (1 mes)", "type": "main", "index": 0 }]] },
+    "Ventana dev (1 mes)": { "main": [[{ "node": "Socrata: fetch ventana", "type": "main", "index": 0 }]] },
+    "Socrata: fetch ventana": { "main": [[{ "node": "Validar (id y date presentes)", "type": "main", "index": 0 }]] },
+    "Validar (id y date presentes)": { "main": [[{ "node": "SQL payload (contados + serializados)", "type": "main", "index": 0 }]] },
+    "SQL payload (contados + serializados)": { "main": [[{ "node": "raw.crimes upsert (bulk)", "type": "main", "index": 0 }]] },
+    "raw.crimes upsert (bulk)": { "main": [[{ "node": "log run en pipeline_runs", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "Sprint 2 Paso 2 (MVP): 1 request para ventana <= 50000 registros. Credential postgres a crear: host=postgres (red docker), port=5432, db=chicago_crimes, user/pass del .env. El Paso 3 agrega paginacion en bucle para ventanas anuales."
+  }
+}

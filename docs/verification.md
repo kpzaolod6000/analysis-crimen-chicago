@@ -57,9 +57,55 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # integración con red: merge --no-ff a develop + borrar rama (§4 git-workflow.md)
   ```
 
-### Paso 2 — Workflow n8n → raw.crimes `[ ]`
-*(checklist se llena al implementar; verificará: workflow JSON exportado en
-`n8n/workflows/`, 1 mes de datos en `raw.crimes`, conteos en `pipeline_runs`)*
+### Paso 2 — Workflow n8n → raw.crimes `[x]` (pendiente de run manual tuyo)
+
+- **Objetos revisables:**
+  - `database/migrations/002_operational.sql` — schema `ops` + `ops.pipeline_runs`
+  - `python/tests/integration/test_operational_schema.py` — 6 tests
+  - `n8n/workflows/sprint2-socrata-raw.json` — workflow exportable
+    (Trigger → Ventana → HTTP Socrata → Validar → SQL payload →
+    upsert bulk en raw.crimes → log en pipeline_runs)
+- **Verificar contenido (hecho por el asistente):**
+  - `pytest python/tests -q` → 31 passed · `ruff check python` → passed
+  - JSON del workflow parsea (7 nodos, 6 conexiones)
+  - `002_operational.sql` aplicado en dev (`psql -f`, CREATE x3)
+- **Verificar en n8n (lo haces vos, ~5 min):**
+  > Fix 1 aplicado (2026-10-10): si importaste el JSON ANTES de este fix,
+  > corregir en la GUI: (1) nodo "SQL payload..." → pegar el jsCode nuevo
+  > (genera `payloadSql` con comillas+escape); (2) nodo "raw.crimes upsert
+  > (bulk)" → línea `FROM jsonb_to_recordset(...)` usar
+  > `{{ $json.payloadSql }}`. O re-importar el JSON actualizado.
+  1. Importar: http://localhost:5673 → menu ⋯ → *Import from File* →
+     `n8n/workflows/sprint2-socrata-raw.json`. Si un nodo pide completar
+     config al abrir, revisar que los parámetros coincidan con el JSON.
+  2. Crear credencial (1a vez): en los 2 nodos Postgres → *Create new
+     credential* con **host `postgres`** (red docker), port `5432`,
+     DB `chicago_crimes`, user/pass del `.env`. Nombrarla
+     `chicago-postgres (docker)` y asignarla a ambos nodos.
+  3. Ejecutar el workflow (botón *Execute workflow*). Ventana dev:
+     2026-09-01 → 2026-10-01 (~20k registros, 1 request, 1-2 min).
+  4. Chequear resultados en DB:
+     ```powershell
+     docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT count(*) FROM raw.crimes;"
+     docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT min(date), max(date) FROM raw.crimes;"
+     docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT run_id, status, records_received, records_failed FROM ops.pipeline_runs ORDER BY run_id DESC LIMIT 3;"
+     ```
+  5. Re-run del workflow → `count(*)` NO cambia (UPSERT por `id`) y aparece
+     un segundo `run_id` en `pipeline_runs`.
+  6. **Smoke test automático** (verifica todo lo anterior + calidad mínima):
+     ```powershell
+     .\.venv\Scripts\python.exe python/scripts/check_raw_load.py
+     ```
+     Esperado: filas ≈ window (excluye parcial), ventana sept-2026 completa,
+     run SUCCESS/PARTIAL en pipeline_runs, advertencias todas en 0.
+- ✅ **Verificado el 2026-10-10:** carga SUCCESS, 19.642 filas (19642
+  recibidas, 0 fallidas), 0 duplicados, 0 coords inválidas, 0 ids nulos.
+- **Git:**
+  ```powershell
+  git add database/ python/tests/integration/test_operational_schema.py n8n/ docs/
+  git commit -m "feat: socrata-to-raw n8n workflow with pipeline_runs logging"
+  git push
+  ```
 
 ### Paso 3 — Ventana 1 año `[ ]`
 ### Paso 4 — Data tests de calidad (unicidad, rangos, nulos) `[ ]`
