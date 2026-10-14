@@ -208,11 +208,12 @@ Cada sprint incluye sus tests (ver [docs/testing.md](testing.md)).
 - [x] CI básico con GitHub Actions (`.github/workflows/ci.yml`: ruff + pytest, usando `make`)
 - Resultado: `make up` → Postgres + n8n funcionando.
 
-### Sprint 2 — Ingesta (MVP del pipeline) `[ ]`
-- [ ] Helper Python opcional para explorar Socrata / construir queries SoQL
-- [ ] Workflow n8n: Schedule → HTTP Socrata → Validate → Batch → raw.crimes
-- [ ] Cargar 1 mes de datos → luego 1 año
-- [ ] Tests de calidad de datos (unicidad, rangos, nulos)
+### Sprint 2 — Ingesta (MVP del pipeline) `[x]`
+- [x] Helper Python opcional para explorar Socrata / construir queries SoQL
+- [x] Workflow n8n: HTTP Socrata → Validate → Batch → raw.crimes (trigger
+      manual en dev; el Schedule semanal llega con el incremental, Sprint 10)
+- [x] Cargar 1 mes de datos → luego 1 año (bucle por ventanas mensuales)
+- [x] Tests de calidad de datos (unicidad, rangos, nulos)
 - Resultado: **Socrata → n8n → raw.crimes automático** (primera meta real).
 
 ### Sprint 3 — Data Warehouse `[ ]`

@@ -4,6 +4,8 @@ del workflow n8n (docs/testing.md §2.4).
 No usa pytest ni requiere datos: corre contra dev (5432) por defecto y
 reporta el estado de `raw.crimes` y `ops.pipeline_runs`. Sale con código 1
 si raw.crimes está vacía; advierte (sin fallar) sobre duplicados/coords.
+Las métricas de calidad vienen de `ingestion.quality` (misma fuente que los
+data tests de integración).
 
 Uso:
     .\\.venv\\Scripts\\python.exe python/scripts/check_raw_load.py
@@ -12,8 +14,13 @@ Uso:
 
 import argparse
 import sys
+from pathlib import Path
 
 import psycopg2
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from ingestion import quality  # noqa: E402
 
 
 def query(cur, sql):
@@ -39,7 +46,7 @@ def main():
     )
     conn.autocommit = True
     with conn.cursor() as cur:
-        total, = query(cur, "SELECT count(*) FROM raw.crimes")[0]
+        total = quality.total_rows(cur)
         print(f"[raw.crimes] filas totales: {total}")
         if total == 0:
             print("FALLO: raw.crimes esta vacia (el workflow no se ejecuto o fallo)")
@@ -50,21 +57,14 @@ def main():
         )[0]
         print(f"[raw.crimes] ventana real: {min_date} -> {max_date}")
 
-        (dups,) = query(
-            cur,
-            "SELECT count(*) FROM (SELECT id FROM raw.crimes GROUP BY id HAVING count(*) > 1) d",
-        )[0]
-        quality: list[tuple[str, int]] = [("[raw.crimes] ids duplicados (violacion PK/UPSERT)", dups)]
-
-        (bad_coords,) = query(
-            cur,
-            "SELECT count(*) FROM raw.crimes WHERE latitude IS NOT NULL "
-            "AND (latitude NOT BETWEEN -90 AND 90 OR longitude NOT BETWEEN -180 AND 180)",
-        )[0]
-        quality.append(("[raw.crimes] coordenadas fuera de rango", bad_coords))
-
-        (null_ids,) = query(cur, "SELECT count(*) FROM raw.crimes WHERE id IS NULL")[0]
-        quality.append(("[raw.crimes] ids nulos", null_ids))
+        warnings: list[tuple[str, int]] = [
+            ("[raw.crimes] ids duplicados (violacion PK/UPSERT)", quality.duplicate_ids(cur)),
+            (
+                "[raw.crimes] coordenadas fuera de rango",
+                quality.out_of_range_coordinates(cur),
+            ),
+            ("[raw.crimes] ids nulos", quality.null_ids(cur)),
+        ]
 
         rows = query(
             cur,
@@ -76,9 +76,9 @@ def main():
             print(f"   {row}")
 
     print("Advertencias (deben ser 0):")
-    for label, value in quality:
+    for label, value in warnings:
         print(f"   {label}: {value}")
-    ok = all(value == 0 for _, value in quality)
+    ok = all(value == 0 for _, value in warnings)
     result = "OK" if ok else "CON ADVERTENCIAS"
     print(f"RESULTADO: {result} - {total} filas")
     return 0

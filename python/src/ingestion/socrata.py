@@ -76,6 +76,38 @@ def fetch_page(
     return records
 
 
+def month_windows(start: str, end: str) -> list[tuple[str, str]]:
+    """Split [start, end) into month-aligned half-open sub-windows.
+
+    Backfill convention (skill chicago-data-ingestion): year/month windows,
+    never a deep OFFSET without a date filter. Bounds are clipped: the first
+    window starts at `start`, the last one ends at `end`, and each inner
+    boundary is the first day of a month at 00:00:00.
+
+    Mirrors the "Meses de la ventana" Code node in the n8n workflow
+    (n8n/workflows/sprint2-socrata-raw.json) — keep both implementations
+    in sync.
+
+    Args in ISO format, e.g. '2026-01-01T00:00:00'.
+    """
+    start_dt = datetime.fromisoformat(start)
+    end_dt = datetime.fromisoformat(end)
+    if start_dt >= end_dt:
+        raise ValueError(f"start ({start}) must be before end ({end})")
+    windows: list[tuple[str, str]] = []
+    cursor = start_dt
+    while cursor < end_dt:
+        if cursor.month == 12:
+            next_month = cursor.replace(year=cursor.year + 1, month=1, day=1)
+        else:
+            next_month = cursor.replace(month=cursor.month + 1, day=1)
+        next_month = next_month.replace(hour=0, minute=0, second=0, microsecond=0)
+        month_end = min(next_month, end_dt)
+        windows.append((cursor.isoformat(), month_end.isoformat()))
+        cursor = month_end
+    return windows
+
+
 def paginate(
     dataset_id: str,
     fetch: FetchFn,

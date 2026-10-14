@@ -9,6 +9,7 @@ aislada de desarrollo (5432). Conexión configurable por variables de entorno:
 """
 
 import os
+import sys
 from pathlib import Path
 
 import psycopg2
@@ -16,6 +17,11 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 MIGRATIONS_DIR = REPO_ROOT / "database" / "migrations"
+
+# Bootstrap: hace importable python/src (mismo patrón que tests/unit/conftest.py)
+SRC_DIR = REPO_ROOT / "python" / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 
 def get_test_dsn():
