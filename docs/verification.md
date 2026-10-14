@@ -107,5 +107,63 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git push
   ```
 
-### Paso 3 — Ventana 1 año `[ ]`
+### Paso 3 — Ventana 1 año (bucle mensual) `[ ]` (pendiente de run manual tuyo)
+
+- **Objetos revisables:**
+  - `n8n/workflows/sprint2-socrata-raw.json` — reescrito: `Set ventana →
+    Meses de la ventana (Code) → Loop Over Items (batch 1) → Socrata: fetch
+    mes → Validar + SQL payload (mes) → upsert → log por mes →` retorno al loop
+  - `python/src/ingestion/socrata.py` — `month_windows()` (réplica testeable
+    del algoritmo del nodo "Meses de la ventana"; mantener ambas en sync)
+  - `python/tests/unit/test_socrata.py` — 6 tests nuevos (TestMonthWindows)
+  - `python/tests/unit/test_n8n_workflow.py` — 11 tests estructurales (nuevo)
+- **Verificar contenido:**
+  - `pytest python/tests/unit -v` → 34 passed (17 previos + 6 + 11)
+  - `pytest python/tests -q` → 48 passed (unit + integration)
+  - `ruff check python` → All checks passed
+- **Verificar en n8n (lo haces vos):**
+  1. **Borrar** el workflow importado en el Paso 2 (evita duplicados) e
+     importar `n8n/workflows/sprint2-socrata-raw.json` (menu ⋯ → *Import
+     from File*). Reasignar la credencial `chicago-postgres (docker)` en los
+     2 nodos Postgres.
+  2. **Smoke del bucle (recomendado, ~5 min):** en "Ventana dev (1 año)"
+     cambiar `windowStart` a `2026-06-01T00:00:00` (windowEnd queda
+     `2026-10-01T00:00:00`) y ejecutar. Esperado: 4 iteraciones (jun→sep),
+     4 filas nuevas en `ops.pipeline_runs` (sep ya existía: UPSERT no duplica).
+     ```powershell
+     docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT window_start, status, records_received, records_failed, error_message FROM ops.pipeline_runs ORDER BY run_id DESC LIMIT 6;"
+     docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT count(*) FROM raw.crimes;"
+     ```
+  3. **Run completo 1 año (~15-30 min):** restaurar `windowStart` a
+     `2025-10-01T00:00:00` y ejecutar. Esperado: 12 filas nuevas en
+     `pipeline_runs` (una por mes, status SUCCESS/PARTIAL, `error_message`
+     NULL), `min(date)>=2025-10-01` y `max(date)<2026-10-01` en raw.crimes.
+     ```powershell
+     docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT min(date), max(date), count(*) FROM raw.crimes;"
+     docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT count(*) AS runs, sum(records_received) AS recibidos, sum(records_failed) AS fallidos FROM ops.pipeline_runs WHERE window_start >= '2025-10-01';"
+     ```
+  4. **Idempotencia:** re-ejecutar el workflow completo → `count(*)` de
+     raw.crimes NO cambia (UPSERT por `id`); aparecen 12 `run_id` nuevos.
+  5. **Smoke automático:** `.\.venv\Scripts\python.exe python/scripts/check_raw_load.py`
+     → filas ≈ ventana anual, advertencias en 0.
+- **Riesgos conocidos (si el run falla, revisar esto):**
+  - `$('Loop Over Items').item` en "Validar + SQL payload (mes)": es la vía
+    documentada para leer el item actual del bucle. Si n8n lanza error de
+    expresión ahí, abrir el nodo y revisar que el nombre del nodo de bucle
+    sea exactamente `Loop Over Items`.
+  - Si un mes devolviera 0 registros, la cadena se detiene en silencio
+    (n8n no ejecuta nodos sin input). No ocurre en este dataset (meses
+    siempre con datos); se detectaría porque faltan filas en pipeline_runs.
+  - Guard de truncamiento: ningún mes histórico supera ~45k registros
+    (< pageSize 50000). Si un mes quedara `FAILED` con ese mensaje, avisar:
+    requeriría paginación interna (prevista para Sprint 10).
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint2-year-window develop
+  git add python/ n8n/ docs/
+  git commit -m "feat: add monthly loop to n8n workflow for 1-year window"
+  git push -u origin feature/sprint2-year-window
+  # tras CI verde: merge --no-ff a develop (§4 git-workflow.md)
+  ```
+
 ### Paso 4 — Data tests de calidad (unicidad, rangos, nulos) `[ ]`

@@ -26,6 +26,49 @@ Reglas:
 
 ---
 
+## [2026-10-13] Sprint 2 · Paso 3 — Bucle mensual para la ventana 1 año (workflow n8n)
+
+**Qué:** el workflow pasa de 1 página suelta (MVP del Paso 2) a un bucle por
+ventanas mensuales: `Meses de la ventana` (Code nuevo) genera las sub-ventanas
+half-open y `Loop Over Items` (SplitInBatches v3, batch 1) procesa mes a mes:
+fetch → validar+payload → upsert → log (1 fila en `pipeline_runs` por mes, con
+`error_message`) → retorno al loop. Ventana dev: 2025-10-01 → 2026-10-01
+(12 meses, solapa sept-2026 ya cargado → prueba el UPSERT). Se añadió un guard
+de truncamiento: si un mes devuelve `pageSize` registros (imposible para este
+dataset: máx. histórico ~45k/mes) no se inserta nada y queda `FAILED` con
+mensaje. Se eliminó el nodo Filter: la validación vive en el Code node porque
+dentro del bucle los conteos deben ser por iteración (`$input.all()` acotado a
+la ejecución actual; `$('Nodo').all()` agregaría todas las iteraciones).
+**Por qué:** Paso 3 del plan (ventana 1 año). La regla del skill
+chicago-data-ingestion es backfill por ventanas año/mes (nunca OFFSET profundo
+sin filtro); el bucle mensual la implementa y deja el camino listo para el
+backfill histórico de Sprint 10. Se verificó en el código fuente de n8n que el
+output 0 de SplitInBatches es `done` y el 1 es `loop` (al revés de lo
+intuitivo) y que `$('Loop Over Items').item` es la vía documentada de leer el
+item actual del bucle. `month_windows()` en el helper Python es la réplica
+testeable del JS del nodo (comentarios cruzados en ambos).
+**Archivos:**
+- `n8n/workflows/sprint2-socrata-raw.json` — reescrito (8 nodos, bucle)
+- `python/src/ingestion/socrata.py` — `month_windows()` nuevo
+- `python/tests/unit/test_socrata.py` — 6 tests (TestMonthWindows)
+- `python/tests/unit/test_n8n_workflow.py` — 11 tests estructurales (nuevo)
+- `docs/verification.md` — checklist del Paso 3 (smoke 3 meses + run anual)
+**Tests:**
+- `python/tests/unit` → 34 passed (17 previos + 6 month_windows + 11 workflow)
+- `pytest python/tests -q` → 48 passed (unit + integration) · ruff limpio
+- Los tests estructurales fijan: wiring del bucle (loop-back), conteos por
+  iteración, guard de truncamiento, contratos upsert/log y credenciales como
+  placeholder (anti-export de credenciales reales).
+**Cómo verificar:**
+- Ejecutar el checklist del Paso 3 en `docs/verification.md` (smoke del bucle
+  con 3-4 meses, luego run anual completo + idempotencia + check_raw_load.py).
+**Pendiente detectado:**
+- Si un mes devolviera 0 registros, n8n no ejecuta los nodos siguientes y el
+  bucle se detendría en silencio (no ocurre en este dataset; se detectaría por
+  filas faltantes en pipeline_runs).
+- Paginación interna dentro de un mes (OFFSET) queda diferida: ningún mes
+  histórico supera pageSize; el guard FAIL ruidoso cubre el caso.
+
 ## [2026-10-10] Sprint 2 · Paso 2 (fix 2) — CI valida pushes de feature/*
 
 **Qué:** `.github/workflows/ci.yml` ahora dispara también en push a

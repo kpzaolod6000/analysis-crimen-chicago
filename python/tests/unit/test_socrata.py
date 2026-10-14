@@ -141,3 +141,40 @@ class TestFetchPage:
         monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=None: FakeResponse())
         with pytest.raises(TypeError, match="unexpected Socrata response"):
             socrata.fetch_page("ijzp-q8t2", {})
+
+
+class TestMonthWindows:
+    def test_single_exact_month(self):
+        got = socrata.month_windows("2026-09-01T00:00:00", "2026-10-01T00:00:00")
+        assert got == [("2026-09-01T00:00:00", "2026-10-01T00:00:00")]
+
+    def test_full_year_twelve_contiguous_windows(self):
+        got = socrata.month_windows("2025-10-01T00:00:00", "2026-10-01T00:00:00")
+        assert len(got) == 12
+        assert got[0] == ("2025-10-01T00:00:00", "2025-11-01T00:00:00")
+        assert got[-1] == ("2026-09-01T00:00:00", "2026-10-01T00:00:00")
+        # half-open contiguous coverage: each window starts where the previous ended
+        assert all(got[i][1] == got[i + 1][0] for i in range(len(got) - 1))
+
+    def test_clips_partial_first_and_last_month(self):
+        got = socrata.month_windows("2026-09-15T00:00:00", "2026-11-20T00:00:00")
+        assert got == [
+            ("2026-09-15T00:00:00", "2026-10-01T00:00:00"),
+            ("2026-10-01T00:00:00", "2026-11-01T00:00:00"),
+            ("2026-11-01T00:00:00", "2026-11-20T00:00:00"),
+        ]
+
+    def test_december_rolls_over_to_next_year(self):
+        got = socrata.month_windows("2026-12-01T00:00:00", "2027-02-01T00:00:00")
+        assert got == [
+            ("2026-12-01T00:00:00", "2027-01-01T00:00:00"),
+            ("2027-01-01T00:00:00", "2027-02-01T00:00:00"),
+        ]
+
+    def test_same_month_window(self):
+        got = socrata.month_windows("2026-09-10T00:00:00", "2026-09-20T00:00:00")
+        assert got == [("2026-09-10T00:00:00", "2026-09-20T00:00:00")]
+
+    def test_rejects_start_not_before_end(self):
+        with pytest.raises(ValueError):
+            socrata.month_windows("2026-10-01", "2026-09-01")
