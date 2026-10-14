@@ -26,6 +26,48 @@ Reglas:
 
 ---
 
+## [2026-10-13] Sprint 2 · Paso 4 — Data tests de calidad (módulo quality + fixtures)
+
+**Qué:** (a) nuevo `python/src/ingestion/quality.py` con las métricas del skill
+chicago-data-quality como funciones sobre cursor: `duplicate_ids`, `null_ids`,
+`out_of_range_coordinates`, `zero_coordinates` (Socrata a veces emite (0,0)),
+`invalid_community_area` (fuera del catálogo 0–77), `empty_primary_type`,
+`null_counts`/`null_rate` por columna con whitelist (el nombre se interpola
+como identificador SQL vía `psycopg2.sql.Identifier`) y `quality_report`.
+(b) Data tests de integración que siembran 12 filas fixture (`DQ-01..12`,
+casos válidos + inválidos conocidos) en la DB de pruebas (5433) y verifican
+cada métrica contra el conteo calculado a mano. (c) Tests unitarios de la
+lógica pura (cálculo de rate, división por cero, rechazo de columna fuera de
+whitelist) con cursor falso. (d) Refactor de `check_raw_load.py` para consumir
+`quality.py` (una sola fuente de verdad; salida idéntica — variable local
+`quality` renombrada a `warnings` para no chocar con el módulo).
+**Por qué:** último ítem del Sprint 2 ("tests de calidad: unicidad, rangos,
+nulos"). La whitelist + `sql.Identifier` evita inyección por identificador
+(la columna es identificador SQL, no valor parametrizable con `%s`).
+`duplicate_ids`/`null_ids` son trivialmente 0 por la PK — el test valida que
+la métrica corre; el enforcement ya lo cubre `test_raw_schema.py`. La métrica
+`unknown_crime_type` contra catálogo completo queda para Sprint 3 (dims); por
+ahora `empty_primary_type` cubre NULL/vacío.
+**Archivos:**
+- `python/src/ingestion/quality.py` — métricas (nuevo)
+- `python/tests/integration/test_data_quality.py` — 12 tests + fixture (nuevo)
+- `python/tests/unit/test_quality.py` — 3 tests unit (nuevo)
+- `python/tests/integration/conftest.py` — bootstrap sys.path a `python/src`
+  (mismo patrón que `tests/unit/conftest.py`)
+- `python/scripts/check_raw_load.py` — consume `quality.py` (salida idéntica)
+- `docs/verification.md` — checklist del Paso 4 + pasos de cierre del Sprint 2
+**Tests:**
+- `python/tests/unit` → 37 passed (34 + 3) · `python/tests` → 63 passed (48 + 15)
+- `ruff check python` → limpio
+- Datos reales (año cargado en Paso 3): se verifican con `check_raw_load.py`,
+  que ahora comparte las mismas funciones de métrica ya testeadas.
+**Cómo verificar:**
+- Checklist del Paso 4 en `docs/verification.md` (DB de pruebas arriba, pytest,
+  ruff, smoke script contra dev).
+**Pendiente detectado:**
+- Si ruff marca I001 (isort) en `check_raw_load.py` por el import tras
+  `sys.path.insert`, aplicar `ruff check --fix` (el `# noqa: E402` ya cubre E402).
+
 ## [2026-10-13] Sprint 2 · Paso 3 — Bucle mensual para la ventana 1 año (workflow n8n)
 
 **Qué:** el workflow pasa de 1 página suelta (MVP del Paso 2) a un bucle por

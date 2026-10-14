@@ -166,4 +166,39 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # tras CI verde: merge --no-ff a develop (§4 git-workflow.md)
   ```
 
-### Paso 4 — Data tests de calidad (unicidad, rangos, nulos) `[ ]`
+### Paso 4 — Data tests de calidad (unicidad, rangos, nulos) `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `python/src/ingestion/quality.py` — métricas de calidad (nuevo; única
+    fuente de verdad compartida por tests y smoke script)
+  - `python/tests/integration/test_data_quality.py` — 12 tests sobre 12
+    filas fixture sembradas (nuevo)
+  - `python/tests/unit/test_quality.py` — 3 tests unit con cursor falso (nuevo)
+  - `python/tests/integration/conftest.py` — bootstrap sys.path a `python/src`
+  - `python/scripts/check_raw_load.py` — refactor: consume `quality.py`
+    (salida idéntica; variable local `quality` renombrada a `warnings`)
+- **Verificar contenido:**
+  - `docker compose -f docker-compose.test.yml up -d` (si no está levantada)
+  - `pytest python/tests/unit -v` → 37 passed
+  - `pytest python/tests -q` → 63 passed (unit + integration)
+  - `ruff check python` → All checks passed
+  - Smoke sin cambios de comportamiento (contra dev, con datos del Paso 3):
+    `.\.venv\Scripts\python.exe python/scripts/check_raw_load.py` → misma
+    salida de siempre (3 advertencias en 0)
+- **Fixture sembrado (esperado calculado a mano):** 12 filas `DQ-01..12` →
+  date nulo=1, lat/lon nulos=1, community_area nulos=2, primary_type nulos=0
+  (vacío≠NULL), coords fuera de rango=1, coords (0,0)=1, community_area
+  inválida=1, primary_type vacío=1, duplicados=0, ids nulos=0.
+- **Cierre del Sprint 2 (tras verificar este paso):**
+  1. Confirmar que el Paso 3 quedó verificado (12 runs SUCCESS del año).
+  2. Avisar al asistente → marca Sprint 2 `[x]` en `docs/plan.md` y
+     actualiza el estado del README.
+  3. Git (lo haces vos):
+     ```powershell
+     git switch -c feature/sprint2-data-tests develop
+     git add python/ docs/
+     git commit -m "feat: add data quality metrics and integration data tests"
+     git push -u origin feature/sprint2-data-tests
+     # tras CI verde: merge --no-ff a develop; luego release según
+     # git-workflow.md §9: rama release-0.2.0 → main + tag v0.2.0 → back-merge a develop
+     ```
