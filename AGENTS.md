@@ -21,7 +21,8 @@ Reglas que TODO agente (Claude, opencode, etc.) debe seguir en este repo.
    una vez.
 2. **Documentar cada cambio** en `docs/changelog.md` (formato definido ahí:
    qué / por qué / archivos / tests / cómo verificar) ANTES de darlo por
-   terminado.3. **Todo cambio de código incluye sus tests.** Sin tests, el cambio no está
+   terminado. Además, **cada paso deja su checklist accionable** (tests + git)
+   en `docs/verification.md` — es lo que el usuario ejecuta para probar.3. **Todo cambio de código incluye sus tests.** Sin tests, el cambio no está
    terminado. Ver estrategia en `docs/testing.md`.
 4. Al completar un sprint, marcarlo como `[x]` en `docs/plan.md`.
 5. Consultar `docs/plan.md` para no salirse del alcance definido (nada de

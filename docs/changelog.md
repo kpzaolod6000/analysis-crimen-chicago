@@ -26,6 +26,142 @@ Reglas:
 
 ---
 
+## [2026-10-10] Sprint 2 · Paso 2 (fix 2) — CI valida pushes de feature/*
+
+**Qué:** `.github/workflows/ci.yml` ahora dispara también en push a
+`feature/**` (además de main/develop y PRs hacia ellas).
+**Por qué:** el git-workflow exige "ningún merge con CI rojo"; sin el
+trigger de feature, los commits de la rama iban a GitHub sin verificación y
+el CI solo aparecía al abrir el PR. Con este trigger cada push de la rama
+se valida antes del PR.
+**Archivos:**
+- `.github/workflows/ci.yml` — push branches + `feature/**`
+**Tests:**
+- YAML válido (re-validar en el próximo push); el resto del workflow no cambia
+**Cómo verificar:**
+- Push de la rama → pestaña Actions en GitHub muestra el run "ci" en verde
+  (o rojo, y así se corrige antes del PR).
+
+## [2026-10-10] Sprint 2 · Paso 2 (cierre) — Smoke test de carga + primer run SUCCESS
+
+**Qué:** (a) script smoke `python/scripts/check_raw_load.py` que contra dev
+(5432) reporta filas totales de raw.crimes, ventana real de fechas, últimos
+runs de ops.pipeline_runs y advertencias de calidad (duplicados por id,
+coords fuera de rango, ids nulos). (b) El usuario re-importó/corrigió los
+nodos en n8n tras el Fix 1 y ejecutó el primer run real: raw.crimes quedó
+con 19.642 filas (ventana 2026-09), run SUCCESS recibidas=19642/fallidas=0.
+**Por qué:** docs/testing.md §2.4 prevé un smoke script que compruebe la
+fila de log del run; automatiza la verificación post-load sin SQL manual.
+**Archivos:**
+- `python/scripts/check_raw_load.py` — smoke check CLI (nuevo)
+- `docs/verification.md` — Paso 2: ítem 6 (script) + resultado verificado
+**Tests:**
+- Smoke ejecutado: OK - 19642 filas, advertencias 0. Suite pytest sigue en
+  verde (31), ruff limpio.
+**Cómo verificar:**
+- `.\\.venv\\Scripts\\python.exe python/scripts/check_raw_load.py` → OK
+- Re-run del workflow n8n → count(*) estable (UPSERT), run_id nuevo.
+
+## [2026-10-10] Sprint 2 · Paso 2 (fix 1) — Payload como literal SQL en el workflow n8n
+
+**Qué:** fij del error "Syntax error at line 30 near '['" detectado en el
+primer run manual: n8n interpola `{{ $json.payload }}` inyectando el JSON
+SIN comillas dentro del SQL (jsonb_to_recordset([...) → sintaxis inválida;
+además los registros con apóstrofes (ej. CTA "L" TRAIN) romperían el
+literal). El Code node ahora emite `payloadSql` — el JSON envuelto en
+comillas simples con `'` escapado a `''` — y el nodo upsert usa
+`jsonb_to_recordset({{ $json.payloadSql }}::jsonb)`.
+**Por qué:** expresiones de n8n son interpolación textual; un JSON crudo no
+es un literal SQL válido.
+**Archivos:**
+- `n8n/workflows/sprint2-socrata-raw.json` — jsCode (payloadSql) + query
+**Tests:**
+- JSON re-validado (payloadSql presente en ambos nodos; no queda
+  `{{ $json.payload }}`)
+**Cómo verificar:**
+- Re-run del workflow desde n8n (con los 2 nodos ya corregidos en la GUI
+  o re-importando el JSON); debe completar y poblar raw.crimes.
+
+## [2026-10-10] Sprint 2 · Paso 2 — Workflow n8n Socrata→raw.crimes + pipeline_runs
+
+**Qué:** (a) migración `002_operational.sql` con la capa operacional:
+schema `ops` + tabla `ops.pipeline_runs` (log de runs: status RUNNING/SUCCESS/
+PARTIAL/FAILED, conteos por run) + 6 tests de integración nuevos. (b) Workflow
+n8n exportable (`manualTrigger` → Set ventana dev 2026-09→10 → HTTP Socrata
+($where half-open + ORDER BY id + $limit 50000) → Filter valida id/date → Code
+serializa a JSON (paid orchestration, transformación queda en SQL) → Postgres
+INSERT bulk con `jsonb_to_recordset` + UPSERT `ON CONFLICT (id)` → log del run).
+**Por qué:** primer pipeline end-to-end (Socrata → n8n → raw.crimes). El upsert
+bulk en una sola sentencia evita ~20k round-trips n8n↔PG (la validación
+permanece en n8n según la división de trabajo). records_inserted/updated quedan
+NULL en este MVP (se refina en Sprint 10); la paginación en bucle para ventanas
+anuales llega en el Paso 3.
+**Archivos:**
+- `database/migrations/002_operational.sql` — schema ops + pipeline_runs (nuevo)
+- `python/tests/integration/test_operational_schema.py` — 6 tests (nuevo)
+- `n8n/workflows/sprint2-socrata-raw.json` — workflow exportable (nuevo)
+- `docs/verification.md` — checklist del Paso 2 (importar, credencial, run,
+  re-run idempotente, queries de smoke)
+**Tests:**
+- `python/tests/integration` → 14 passed (8 raw + 6 operational); total 31
+- Ruff limpio; `002_operational.sql` aplicado y verificado en dev (CREATE x3)
+**Cómo verificar:**
+- Ejecutar el checklist del Paso 2 en `docs/verification.md` (importar
+  workflow, crear credencial `chicago-postgres (docker)`, run manual, y las
+  3 queries de smoke + re-run idempotente).
+**Pendiente detectado:**
+- Mayor riesgo del JSON exportado a ciegas: `typeVersion` de los nodos n8n;
+  si el import falla, abrir el nodo en la GUI y ajustar (params esenciales
+  están completos).
+
+## [2026-10-10] Sprint 2 — Checklist de verificación por paso (docs/verification.md)
+
+**Qué:** nuevo `docs/verification.md`: checklist accionable por sprint/paso
+con (1) los objetos revisables, (2) las verificaciones de contenido
+(tests/lint/manual con comandos exactos) y (3) los pasos git
+(add/commit/push en el flujo GitFlow). Ya completado para todo Sprint 1 y el
+Paso 1 del Sprint 2; los pasos siguientes se llenan al implementarlos.
+**Por qué:** el usuario pidió guardar por sprint los pasos de verificación y
+git que hasta ahora solo vivían en el chat y dispersos entre docs.
+**Archivos:**
+- `docs/verification.md` — checklist por paso (nuevo)
+- `AGENTS.md` — regla 2 extendida: todo paso debe dejar su checklist aquí
+**Tests:**
+- No aplica (solo documentación).
+**Cómo verificar:**
+- Ejecutar tal cual la checklist del Sprint 2 · Paso 1 (pytest 17/25 + ruff
+  + git add/commit/push); los comandos son los ya validados en esta sesión.
+
+## [2026-10-10] Sprint 2 · Paso 1 — Helper Python Socrata/SoQL + tests unitarios
+
+**Qué:** primer módulo de `python/src/ingestion/`: `socrata.py` con 4 piezas —
+`build_params` (construye `$where/$select/$order/$limit/$offset/$$app_token`),
+`date_window_where` (rango half-open `date >= start AND date < end`),
+`fetch_page` (GET JSON con urllib, sin dependencias nuevas) y `paginate`
+(generador por páginas con `ORDER BY id` determinista, para alimentar al
+workflow n8n). 17 tests unitarios nuevos sin red (fake fetch + monkeypatch).
+**Por qué:** Sprint 2 pide "helper opcional para explorar Socrata / construir
+queries SoQL"; centraliza las reglas de la skill `chicago-data-ingestion`
+(nunca OFFSET profundo sin filtro de fechas, ORDER BY id, límite de página
+<= 50000) en un solo lugar testable. `urllib` del stdlib evita sumar
+`requests` al requirements.
+**Archivos:**
+- `python/src/ingestion/socrata.py` — helper (nuevo)
+- `python/src/ingestion/__init__.py` — paquete (nuevo)
+- `python/tests/unit/conftest.py` — sys.path hacia `python/src` (nuevo)
+- `python/tests/unit/test_socrata.py` — 17 tests (nuevo)
+**Tests:**
+- `python/tests/unit` → 17 passed · total 25 passed (unit + integration)
+- `ruff check python` → All checks passed (se corrigieron: import Callable
+  desde collections.abc, TypeError para respuesta no-lista, orden de imports,
+  variable dummy `_calls`)
+**Cómo verificar:**
+- `pytest python/tests/unit -v`
+- `ruff check python`
+- Aún sin red: en el Paso 2/3 el helper se consume solo desde n8n vía HTTP;
+  para explorar a mano: `socrata.fetch_page("ijzp-q8t2",
+  socrata.build_params(where=socrata.date_window_where(...), limit=5))`
+
 ## [2026-10-10] Sprint 1 — Modelo Git alineado al artículo de nvie (GitFlow)
 
 **Qué:** reescrito `docs/git-workflow.md` para seguir el artículo
