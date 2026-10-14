@@ -26,6 +26,27 @@ Reglas:
 
 ---
 
+## [2026-10-14] Sprint 2 — Cierre del sprint (bump 0.2.0)
+
+**Qué:** Sprint 2 marcado `[x]` en `docs/plan.md` (con nota de que el trigger
+es manual en dev — el Schedule semanal llega con el incremental en Sprint 10)
+y estado del README actualizado (Sprint 2 hecho, próximo Sprint 3).
+**Por qué:** cierre de sprint según git-workflow §5. El bump viaja como
+último commit del feature branch (no había fixes de release que versionar, así
+la rama `release-0.2.0` solo transfiere a `main` + tag `v0.2.0`); en sprints
+futuros con fixes de release, el bump se hará en la rama release como indica
+el doc.
+**Archivos:**
+- `docs/plan.md` — Sprint 2 `[x]`
+- `README.md` — §Estado
+- `docs/changelog.md` — esta entrada
+**Tests:**
+- No aplica (solo documentación). Suite queda en 63 passed (ver Paso 4).
+**Cómo verificar:**
+- `docs/plan.md` muestra Sprint 2 `[x]`; tras el release:
+  `git tag -l` lista `v0.2.0` y `git log --oneline --graph main develop`
+  muestra el merge `--no-ff` del release en ambas ramas.
+
 ## [2026-10-13] Sprint 2 · Paso 4 — Data tests de calidad (módulo quality + fixtures)
 
 **Qué:** (a) nuevo `python/src/ingestion/quality.py` con las métricas del skill
