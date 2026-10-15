@@ -195,6 +195,13 @@ git push -u origin feature/sprint3-staging   # 1a vez; luego: git push
 
 ### 10.3 Terminar un paso (ya revisado y verificado)
 
+**Antes de mergear — checklist de "está verde":**
+
+1. **CI en GitHub**: pestaña *Actions* → el run del último commit de la rama
+   en verde (cada push a `feature/**` lo dispara solo, §8).
+2. **Local**: el checklist del paso en `docs/verification.md` ejecutado y en
+   verde (pytest + ruff + verificaciones manuales que aplique).
+
 ```powershell
 git switch develop
 git merge --no-ff feature/sprint3-staging
