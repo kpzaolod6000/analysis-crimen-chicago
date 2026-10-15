@@ -26,6 +26,34 @@ Reglas:
 
 ---
 
+## [2026-10-14] Sprint 3 · Paso 1 — Capa staging (view staging.crimes)
+
+**Qué:** migración `003_staging.sql`: `staging.crimes` como **VIEW** sobre
+`raw.crimes` con las reglas de limpieza del skill chicago-data-quality —
+`btrim` + `''→NULL` en campos de texto, coordenadas `(0,0)` y fuera de rango
+`→NULL` (ambas), coordenadas parciales se conservan, `community_area` fuera
+de 1–77 `→NULL` (los `0` de registros viejos = unknown). Sin filtrado de
+filas: eso lo decide el warehouse al poblar fact. + 11 tests de integración
+(test_staging_schema.py: sembrando 9 filas raw conocidas y verificando cada
+regla contra la view). Corregida la numeración en plan.md (002 ya lo ocupaba
+002_operational.sql → staging es 003, dims será 004).
+**Por qué:** primer paso del Sprint 3 según el skill chicago-postgres
+("staging limpia; warehouse solo se alimenta desde staging"). La decisión de
+VIEW sobre tabla: cero datos duplicados, siempre sincronizada con raw, la
+transformación queda en una sentencia declarativa (principio "n8n orquesta,
+PostgreSQL transforma") y no requiere un paso de carga aparte.
+**Archivos:**
+- `database/migrations/003_staging.sql` — CREATE OR REPLACE VIEW (nuevo)
+- `python/tests/integration/test_staging_schema.py` — 11 tests (nuevo)
+- `docs/plan.md` — numeración de migraciones Sprint 3 corregida
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `python/tests/integration` → 37 passed (26 + 11) · suite total → 74 passed
+- `ruff check python` → limpio
+**Cómo verificar:**
+- Checklist del Paso 1 en `docs/verification.md` (pytest, ruff, aplicar la
+  migración en dev y 3 queries de sanity contra datos reales).
+
 ## [2026-10-14] Docs — Cheat sheet de git por escenario + sección GitHub Actions
 
 **Qué:** en `docs/git-workflow.md` se amplió §8 (ahora "CI y ramas (GitHub
