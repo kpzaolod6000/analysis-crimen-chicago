@@ -257,3 +257,40 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git branch -d feature/docs-git-cheatsheet
   git push origin develop
   ```
+
+## Sprint 3 — Data Warehouse
+
+### Paso 1 — Migración 003_staging (view de limpieza) `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `database/migrations/003_staging.sql` — `staging.crimes` como VIEW sobre
+    `raw.crimes`: btrim/''→NULL en texto, coords (0,0) y fuera de rango
+    →NULL (ambas), parciales se conservan, `community_area` solo 1–77.
+  - `python/tests/integration/test_staging_schema.py` — 11 tests (nuevo)
+  - `docs/plan.md` — numeración corregida (002 ya ocupado por operational)
+- **Verificar contenido:**
+  - `docker compose -f docker-compose.test.yml up -d` (si no está levantada)
+  - `pytest python/tests/integration -v` → 37 passed (26 + 11)
+  - `pytest python/tests -q` → 74 passed (unit + integration)
+  - `ruff check python` → All checks passed
+- **Verificar en dev (con los datos reales del año cargado):**
+  ```powershell
+  docker compose exec postgres psql -U postgres -d chicago_crimes -f /database/migrations/003_staging.sql
+  # → CREATE VIEW (idempotente si se re-ejecuta)
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT count(*) FROM staging.crimes;"
+  # → igual al count de raw.crimes
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT count(*) FROM staging.crimes WHERE latitude = 0 AND longitude = 0;"
+  # → 0 (los (0,0) quedaron NULL; comparar con raw.crimes que los tiene)
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT count(*) FROM raw.crimes WHERE community_area NOT BETWEEN 1 AND 77;"
+  # → los que sean >0 en raw, en staging son NULL
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint3-staging develop
+  git add database/ python/ docs/
+  git commit -m "feat: staging view over raw.crimes with cleaning rules"
+  git push -u origin feature/sprint3-staging
+  # tras CI verde: merge --no-ff a develop
+  ```
+
+### Paso 2 — Migración 004_dims_fact (modelo dimensional) `[ ]`

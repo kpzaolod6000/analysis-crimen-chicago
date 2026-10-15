@@ -217,7 +217,8 @@ Cada sprint incluye sus tests (ver [docs/testing.md](testing.md)).
 - Resultado: **Socrata → n8n → raw.crimes automático** (primera meta real).
 
 ### Sprint 3 — Data Warehouse `[ ]`
-- [ ] `002_staging.sql` (limpieza/tipos), `003_dims_fact.sql`
+- [ ] `003_staging.sql` (limpieza/tipos), `004_dims_fact.sql`
+      (la numeración `002` la ocupa `002_operational.sql` del Sprint 2)
 - [ ] Seed: community areas (77) del dataset oficial `cauq-8yn6`
 - [ ] Tests de integración: integridad referencial fact↔dims, conteos
 - Resultado: modelo dimensional poblado desde raw.
