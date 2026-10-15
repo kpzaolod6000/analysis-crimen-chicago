@@ -26,6 +26,24 @@ Reglas:
 
 ---
 
+## [2026-10-14] Docs — checklist pre-merge en el cheat sheet (§10.3)
+
+**Qué:** §10.3 de `docs/git-workflow.md` ahora lista explícitamente qué
+verificar ANTES de mergear un feature a `develop`: (1) run del CI en verde en
+la pestaña Actions (el push a `feature/**` lo dispara solo) y (2) checklist
+del paso en `docs/verification.md` ejecutado localmente.
+**Por qué:** pedido del usuario: que el "qué hacer al terminar cada cambio"
+quede anotado en el doc de git — hasta ahora esa verificación pre-merge solo
+vivía en el chat.
+**Archivos:**
+- `docs/git-workflow.md` — §10.3 con checklist pre-merge
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica (solo documentación).
+**Cómo verificar:**
+- Leer §10.3 y comparar con lo ejecutado al cerrar `feature/sprint3-staging`
+  (debe coincidir: CI verde en Actions + pytest/ruff local antes del merge).
+
 ## [2026-10-14] Sprint 3 · Paso 1 — Capa staging (view staging.crimes)
 
 **Qué:** migración `003_staging.sql`: `staging.crimes` como **VIEW** sobre

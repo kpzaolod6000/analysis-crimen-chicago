@@ -258,6 +258,25 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git push origin develop
   ```
 
+## Docs — checklist pre-merge en §10.3 (git-workflow.md)
+
+- **Objetos revisables:**
+  - `docs/git-workflow.md` — §10.3: checklist "está verde" antes del merge
+    (CI en Actions + checklist del paso en este archivo).
+- **Verificar contenido:**
+  - Leer §10.3: coincide con lo ejecutado al cerrar `feature/sprint3-staging`.
+- **Git:**
+  ```powershell
+  git switch -c feature/docs-premerge-check develop
+  git add docs/
+  git commit -m "docs: add pre-merge green checklist to git cheat sheet"
+  git push -u origin feature/docs-premerge-check
+  git switch develop
+  git merge --no-ff feature/docs-premerge-check
+  git branch -d feature/docs-premerge-check
+  git push origin develop
+  ```
+
 ## Sprint 3 — Data Warehouse
 
 ### Paso 1 — Migración 003_staging (view de limpieza) `[ ]` (pendiente de tu verificación)
