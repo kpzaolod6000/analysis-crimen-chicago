@@ -26,6 +26,36 @@ Reglas:
 
 ---
 
+## [2026-10-14] Sprint 3 · Paso 3 — Seed de las 77 community areas
+
+**Qué:** `database/seeds/community_areas.sql` (nuevo): UPSERT idempotente de
+las 77 community areas oficiales en `warehouse.dim_community_area` (número +
+nombre). Nuevo target `seed` en el `Makefile` (mismo patrón que `migrate`,
+loop sobre `database/seeds/*.sql`). 6 tests de integración
+(test_community_areas_seed.py): total 77, numeración completa 1–77, sin
+nombres nullos, idempotencia del seed (re-aplicar → sigue 77), caso del
+apóstrofe ("O'Hare") y spot checks (Lake View no "Lakeview", Logan Square,
+Loop, Hyde Park).
+**Por qué:** tercer ítem del Sprint 3. El seed se extrajo de la API oficial
+(NO escrito de memoria); el descubrimiento: `cauq-8yn6` (la ref. del plan)
+es solo la **vista de mapa** del dataset tabular **`igwz-8jzy`** — corregido
+el plan (Sprint 3 y §12). El source trae nombres EN MAYÚSCULAS y "OHARE"; el
+seed guarda Title Case + "O'Hare" (nombre canónico), transformación
+documentada en el encabezado del SQL. `ON CONFLICT DO UPDATE` (UPSERT del
+skill) para que re-aplicar el seed refresque nombres sin duplicar.
+**Archivos:**
+- `database/seeds/community_areas.sql` — 77 filas + UPSERT (nuevo)
+- `Makefile` — target `seed` (nuevo) + `.PHONY` actualizado
+- `python/tests/integration/test_community_areas_seed.py` — 6 tests (nuevo)
+- `docs/plan.md` — Sprint 3 y §12: dataset tabular corregido a `igwz-8jzy`
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `python/tests/integration` → 53 passed (47 + 6) · suite total → 90 passed
+- `ruff check python` → limpio
+**Cómo verificar:**
+- Checklist del Paso 3 en `docs/verification.md` (DB de pruebas, pytest,
+  ruff, `make seed` en dev y 2 queries de sanity con nombres).
+
 ## [2026-10-14] Sprint 3 · Paso 2 — Modelo dimensional (004_dims_fact.sql)
 
 **Qué:** migración `004_dims_fact.sql` con el warehouse dimensional del plan
