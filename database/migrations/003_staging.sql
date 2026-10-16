@@ -21,13 +21,13 @@ CREATE SCHEMA IF NOT EXISTS staging;
 CREATE OR REPLACE VIEW staging.crimes AS
 SELECT
     id,
-    btrim(case_number)            AS case_number,
+    nullif(btrim(case_number), '')            AS case_number,
     date,
-    btrim(block)                  AS block,
-    btrim(iucr)                   AS iucr,
-    btrim(primary_type)           AS primary_type,
-    btrim(description)            AS description,
-    btrim(location_description)   AS location_description,
+    nullif(btrim(block), '')                  AS block,
+    nullif(btrim(iucr), '')                   AS iucr,
+    nullif(btrim(primary_type), '')           AS primary_type,
+    nullif(btrim(description), '')            AS description,
+    nullif(btrim(location_description), '')   AS location_description,
     arrest,
     domestic,
     beat,
@@ -37,7 +37,7 @@ SELECT
         WHEN community_area BETWEEN 1 AND 77 THEN community_area
         ELSE NULL
     END                           AS community_area,
-    btrim(fbi_code)               AS fbi_code,
+    nullif(btrim(fbi_code), '')   AS fbi_code,
     x_coordinate,
     y_coordinate,
     year,

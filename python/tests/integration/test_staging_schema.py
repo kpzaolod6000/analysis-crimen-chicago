@@ -104,7 +104,7 @@ def test_empty_string_becomes_null(staging_db):
             "SELECT primary_type FROM staging.crimes WHERE id = 'STG-03'"
         )
         (primary_type,) = cur.fetchone()
-    assert primary_type == ""
+    assert primary_type is None  # contrato: '' (o solo espacios) -> NULL
 
 
 def test_zero_zero_coordinates_become_null(staging_db):

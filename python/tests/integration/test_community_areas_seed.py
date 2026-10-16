@@ -6,8 +6,6 @@ apply 004_dims_fact.sql + the seed file and verify the count, the full 1-77
 numbering, non-null names, idempotency and the O'Hare apostrophe edge case.
 """
 
-from pathlib import Path
-
 import pytest
 from conftest import REPO_ROOT, apply_migration
 
