@@ -371,4 +371,38 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # CI verde → merge --no-ff a develop (checklist §10.3)
   ```
 
+### Fix — Contrato staging ''→NULL + F401 del seed `[ ]`
+
+- **Qué pasó:** el CI del seed (runs 20-21) falló en "Lint (ruff)" (F401:
+  `Path` sin usar en `test_community_areas_seed.py`) y los tests quedaron
+  SKIPPED. Además, releer `003_staging.sql` para el Paso 4 destapó que el
+  contrato documentado ("btrim + ''→NULL") no estaba implementado, y el test
+  `test_empty_string_becomes_null` codificaba el bug (`== ""` en vez de
+  `is None`).
+- **Objetos revisables:**
+  - `database/migrations/003_staging.sql` — 7 campos de texto con
+    `nullif(btrim(col), '')`
+  - `python/tests/integration/test_staging_schema.py` — aserción `is None`
+  - `python/tests/integration/test_community_areas_seed.py` — import `Path`
+    eliminado
+- **Verificar contenido:**
+  - `pytest python/tests -q` → 90 passed (37 unit + 53 integration)
+  - `ruff check python` → All checks passed
+- **Verificar en dev (re-aplicar la view corregida):**
+  ```powershell
+  docker compose exec postgres psql -U postgres -d chicago_crimes -f /database/migrations/003_staging.sql
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT count(*) FROM staging.crimes WHERE primary_type = '';"
+  # → 0 (los '' y solo-espacios pasaron a NULL)
+  ```
+- **Lección (regla de oro):** el checklist pre-merge §10.3 incluye CI en
+  Actions — no merge con run rojo, ni aunque el push local haya estado verde.
+- **Git:**
+  ```powershell
+  git switch -c fix/staging-contract develop
+  git add database/ python/ docs/
+  git commit -m "fix: nullify empty strings in staging view (declared contract)"
+  git push -u origin fix/staging-contract
+  # CI en verde (¡es el fix que lo devuelve!) → merge --no-ff a develop
+  ```
+
 ### Paso 4 — Carga staging → warehouse (dims + fact) `[ ]`

@@ -26,6 +26,49 @@ Reglas:
 
 ---
 
+## [2026-10-16] Sprint 3 · Fix 1 — Contrato ''→NULL en staging (declarado pero no implementado)
+
+**Qué:** `003_staging.sql` ahora envuelve los 7 campos de texto en
+`nullif(btrim(col), '')` (antes solo `btrim`), y
+`test_empty_string_becomes_null` corregido para que codifique el contrato
+real (antes asertaba `== ""`, que enmascaraba el bug pese a su nombre).
+**Por qué:** el contrato declarado (header de 003 y changelog del Paso 1)
+dice "btrim + ''→NULL en texto", pero el SQL no lo implementaba y el test —
+escrito por error con `assert == ""` en vez de `is None` — hacía pasar
+verdes runs que no probaban la regla. Descubierto al releer 003 en la
+preparación del Paso 4: `dim_crime_type.primary_type` es NOT NULL y sin esta
+regla la carga crearía un miembro de dimensión con tipo vacío.
+**Archivos:**
+- `database/migrations/003_staging.sql` — 7 campos de texto con nullif
+- `python/tests/integration/test_staging_schema.py` — aserción corregida
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- Conteo de suite sin cambios (90 total: 37 unit + 53 integration); el test
+  ahora SÍ verifica la regla. Verificación local obligatoria antes de merge.
+**Cómo verificar:**
+- Checklist "Fix — contrato staging + F401" en `docs/verification.md`
+  (incluye re-aplicar 003 en dev y sanity contra datos reales).
+
+## [2026-10-16] Sprint 3 · Fix 2 — F401 en test del seed (CI del seed rojo, tests skipped)
+
+**Qué:** eliminado el `from pathlib import Path` sin uso en
+`python/tests/integration/test_community_areas_seed.py` (F401 unused-import).
+**Por qué:** los runs 20-21 del CI (seed y su merge a develop, 5470280 y
+7b56eae) fallaron en el step "Lint (ruff)" y los tests de integración
+quedaron SKIPPED — los commits se mergeatearon sin verificar Actions. El
+ruff local tampoco se corrió en esa verificación. Nota: los runs 18-19
+(dims-fact) sí fueron verdes, por eso el F401 del seed es el primer FAILO
+del lint desde el hotfix 0.2.1.
+**Archivos:**
+- `python/tests/integration/test_community_areas_seed.py` — import eliminado
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica funcionalmente (la opción de referencia Path es innecesaria:
+  SEED_PATH se construye sobre REPO_ROOT que importamos del conftest).
+**Cómo verificar:**
+- `ruff check python` → All checks passed
+- Tras el fix merge: CI de develop en verde (Actions, run #22+)
+
 ## [2026-10-14] Sprint 3 · Paso 3 — Seed de las 77 community areas
 
 **Qué:** `database/seeds/community_areas.sql` (nuevo): UPSERT idempotente de
