@@ -12,10 +12,10 @@
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down migrate test-up test-down test-unit test-integration lint
+.PHONY: help up down migrate seed test-up test-down test-unit test-integration lint
 
 help:
-	@echo "Targets: up down migrate test-up test-down test-unit test-integration lint"
+	@echo "Targets: up down migrate seed test-up test-down test-unit test-integration lint"
 
 up:
 	docker compose up -d
@@ -25,6 +25,11 @@ down:
 
 migrate:
 	for f in database/migrations/*.sql; do \
+	  docker compose exec -T postgres psql -U postgres -d chicago_crimes -f "/database/$${f#database/}"; \
+	done
+
+seed:
+	for f in database/seeds/*.sql; do \
 	  docker compose exec -T postgres psql -U postgres -d chicago_crimes -f "/database/$${f#database/}"; \
 	done
 

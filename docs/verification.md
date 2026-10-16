@@ -340,4 +340,35 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # checklist pre-merge de git-workflow.md §10.3 y luego merge --no-ff a develop
   ```
 
-### Paso 3 — Seed community areas (77, dataset `cauq-8yn6`) `[ ]`
+### Paso 3 — Seed community areas (77) `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `database/seeds/community_areas.sql` — 77 filas, UPSERT idempotente;
+    fuente = dataset tabular `igwz-8jzy` (extracto 2026-10-14 via API)
+  - `Makefile` — target `seed` nuevo (loop sobre `database/seeds/*.sql`)
+  - `python/tests/integration/test_community_areas_seed.py` — 6 tests (nuevo)
+  - `docs/plan.md` — ref. del dataset corregida (`igwz-8jzy`, `cauq-8yn6`
+    solo es su vista de mapa)
+- **Verificar contenido:**
+  - `docker compose -f docker-compose.test.yml up -d` (si no está levantada)
+  - `pytest python/tests/integration -v` → 53 passed (47 + 6)
+  - `pytest python/tests -q` → 90 passed (unit + integration)
+  - `ruff check python` → All checks passed
+- **Verificar en dev:**
+  ```powershell
+  make seed    # o: docker compose exec postgres psql -U postgres -d chicago_crimes -f /database/seeds/community_areas.sql
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT count(*) FROM warehouse.dim_community_area;"
+  # → 77
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT community_area, community_area_name FROM warehouse.dim_community_area WHERE community_area IN (22, 41, 76);"
+  # → 22 Logan Square · 41 Hyde Park · 76 O'Hare
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint3-seed-areas develop
+  git add database/ python/ Makefile docs/
+  git commit -m "feat: seed 77 community areas from official dataset"
+  git push -u origin feature/sprint3-seed-areas
+  # CI verde → merge --no-ff a develop (checklist §10.3)
+  ```
+
+### Paso 4 — Carga staging → warehouse (dims + fact) `[ ]`
