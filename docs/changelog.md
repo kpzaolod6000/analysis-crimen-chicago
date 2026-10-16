@@ -26,6 +26,34 @@ Reglas:
 
 ---
 
+## [2026-10-14] Sprint 3 · Paso 2 — Modelo dimensional (004_dims_fact.sql)
+
+**Qué:** migración `004_dims_fact.sql` con el warehouse dimensional del plan
+§6: `dim_date` (date_key yyyymmdd estilo Kimball, month/day_name a generar
+con CASE fijo — determinista, sin locale), `dim_crime_type` y `dim_location`
+(grano = combinación natural con `UNIQUE ... NULLS NOT DISTINCT` para que los
+NULLs no dupliquen), `dim_district`, `dim_community_area` (nombre llega con
+el seed del Paso 3) y `fact_crime` (crime_id natural UNIQUE, FK date_key NOT
+NULL, demás FKs NULLables, CHECK hour 0-23, índices solo en las FKs de
+filtro/agrupación). La población desde staging llega en el Paso 4; aquí va
+solo DDL. + 10 tests de integración (estructura, PK/UNIQUE, enforcement de
+FKs, FKs NULLables, CHECK de hour, dedupe con NULLs, índices). Fixture
+`seeded_date` con `ON CONFLICT DO NOTHING` para que ningún test dependa del
+orden de ejecución.
+**Por qué:** segundo ítem del Sprint 3. Separar DDL de carga mantiene los
+pasos pequeños y revisables; NULLS NOT DISTINCT (PG15+) evita el clásico
+"NULL != NULL" que duplicaría miembros de dimensión con iucr/block nulos.
+**Archivos:**
+- `database/migrations/004_dims_fact.sql` — dims + fact + índices (nuevo)
+- `python/tests/integration/test_dims_fact_schema.py` — 10 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `python/tests/integration` → 47 passed (37 + 10) · suite total → 84 passed
+- `ruff check python` → limpio
+**Cómo verificar:**
+- Checklist del Paso 2 en `docs/verification.md` (DB de pruebas, pytest,
+  ruff, aplicar en dev y `\dt warehouse.*`).
+
 ## [2026-10-14] Docs — checklist pre-merge en el cheat sheet (§10.3)
 
 **Qué:** §10.3 de `docs/git-workflow.md` ahora lista explícitamente qué
