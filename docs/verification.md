@@ -312,4 +312,32 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # tras CI verde: merge --no-ff a develop
   ```
 
-### Paso 2 — Migración 004_dims_fact (modelo dimensional) `[ ]`
+### Paso 2 — Migración 004_dims_fact (modelo dimensional) `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `database/migrations/004_dims_fact.sql` — `warehouse.dim_date`,
+    `dim_crime_type`, `dim_location`, `dim_district`, `dim_community_area` +
+    `fact_crime` (FKs, UNIQUE naturales NULLS NOT DISTINCT, 3 índices)
+  - `python/tests/integration/test_dims_fact_schema.py` — 10 tests (nuevo)
+- **Verificar contenido:**
+  - `docker compose -f docker-compose.test.yml up -d` (si no está levantada)
+  - `pytest python/tests/integration -v` → 47 passed (37 + 10)
+  - `pytest python/tests -q` → 84 passed (unit + integration)
+  - `ruff check python` → All checks passed
+- **Verificar en dev:**
+  ```powershell
+  docker compose exec postgres psql -U postgres -d chicago_crimes -f /database/migrations/004_dims_fact.sql
+  # → CREATE SCHEMA/TABLE/INDEX (idempotente si se re-ejecuta)
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "\dt warehouse.*"
+  # → 6 tablas: 5 dims + fact_crime (todas vacías: la carga es el Paso 4)
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint3-dims-fact develop
+  git add database/ python/ docs/
+  git commit -m "feat: dimensional model (dims + fact_crime) with constraints"
+  git push -u origin feature/sprint3-dims-fact
+  # checklist pre-merge de git-workflow.md §10.3 y luego merge --no-ff a develop
+  ```
+
+### Paso 3 — Seed community areas (77, dataset `cauq-8yn6`) `[ ]`
