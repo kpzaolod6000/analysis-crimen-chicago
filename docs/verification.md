@@ -405,4 +405,39 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # CI en verde (¡es el fix que lo devuelve!) → merge --no-ff a develop
   ```
 
-### Paso 4 — Carga staging → warehouse (dims + fact) `[ ]`
+### Paso 4 — Carga staging → warehouse `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `database/functions/load_warehouse.sql` — 6 funciones idempotentes
+    (calendario, 3 dims, fact con resolución de keys, orquestador)
+  - `Makefile` — target `load-warehouse` nuevo
+  - `python/tests/integration/test_warehouse_load.py` — 10 tests (nuevo)
+- **Verificar contenido:**
+  - `pytest python/tests/integration -v` → 63 passed (53 + 10)
+  - `pytest python/tests -q` → 100 passed (unit + integration)
+  - `ruff check python` → All checks passed
+- **Verificar en dev (¡la estrella poblada con tu año real!):**
+  ```powershell
+  make load-warehouse    # (PowerShell: ver equivalencia abajo)
+  ```
+  Equivalente PowerShell (make no instalado):
+  ```powershell
+  docker compose exec -T postgres psql -U postgres -d chicago_crimes -f /database/functions/load_warehouse.sql -c "SELECT warehouse.load_warehouse();"
+  ```
+  Sanity (los conteos exactos los dan los NOTICEs de la función):
+  ```powershell
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT (SELECT count(*) FROM warehouse.fact_crime) AS fact, (SELECT count(*) FROM staging.crimes WHERE date IS NOT NULL) AS esperado;"
+  # fact == esperado (solo difieren si raw cambió entre medio)
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT ca.community_area_name, count(*) FROM warehouse.fact_crime f JOIN warehouse.dim_community_area ca ON ca.community_area_key = f.community_area_key GROUP BY 1 ORDER BY 2 DESC LIMIT 5;"
+  # → las 5 areas con más crímenes de tu año, con nombres reales
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT warehouse.load_warehouse(); SELECT count(*) FROM warehouse.fact_crime;"
+  # re-ejecutar la carga → count no cambia (UPSERT idempotente)
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint3-load-warehouse develop
+  git add database/ python/ Makefile docs/
+  git commit -m "feat: load staging into warehouse dims and fact"
+  git push -u origin feature/sprint3-load-warehouse
+  # CI en Actions verde → merge --no-ff a develop
+  ```
