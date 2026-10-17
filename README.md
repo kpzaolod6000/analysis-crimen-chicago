@@ -36,10 +36,11 @@ n8n · PostgreSQL 16 · Python 3.12 · FastAPI · D3.js · Playwright · Power A
 
 ## Estado
 
-Sprint 2 completado (ingesta Socrata → n8n → `raw.crimes` con bucle por
-ventanas mensuales, log operacional en `ops.pipeline_runs`, data tests de
-calidad y smoke script; ~1 año de datos en dev). Release: `v0.2.0`.
-Próximo paso: **Sprint 3 — Data Warehouse** (staging, dims y `fact_crime`).
+Sprint 3 completado (capa `staging` como view de limpieza, modelo
+dimensional `dims` + `fact_crime`, seed de las 77 community areas y carga
+idempotente staging → warehouse con `load_warehouse()`). Release: `v0.3.0`.
+Próximo paso: **Sprint 4 — SQL Analytics** (vistas analíticas con window
+functions).
 
 Antes de empezar, instala el entorno siguiendo
 [docs/dev-environment.md](docs/dev-environment.md) §7 (Docker Desktop, Node
