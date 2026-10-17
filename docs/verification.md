@@ -258,6 +258,40 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git push origin develop
   ```
 
+---
+
+## Sprint 5 — Python EDA + ML Nivel 1
+
+### Paso 1 — Entorno ML + notebook 01_data_quality `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `python/requirements.txt` — stack del sprint (numpy/pandas/scipy/
+    scikit-learn/matplotlib/ipykernel/jupyterlab, con comentarios)
+  - `python/notebooks/01_data_quality.ipynb` — EDA de calidad sobre dev
+    (18 celdas; conexión psycopg2, no CSV; kernel `chicago-crimes`)
+- **Verificar contenido:**
+  - `pytest python/tests -q` → 111 passed (suite sin cambios)
+  - `ruff check python` → All checks passed
+- **Verificar (tu parte, deps + notebook):**
+  ```powershell
+  .\.venv\Scripts\python.exe -m pip install -r python\requirements.txt
+  .\.venv\Scripts\python.exe -m ipykernel install --user --name chicago-crimes --display-name "Python (chicago-crimes)"
+  # abrir VS Code en python/notebooks/01_data_quality.ipynb,
+  # seleccionar kernel "Python (chicago-crimes)" y Run All
+  # (docker compose up -d antes: postgres en 5432 + datos cargados)
+  ```
+  Esperado: 19.642 filas · ventana sept-2026 · nulos coherentes (ward/x/y
+  los mayores) · top primary_Type THEFT/BATTERY/... · (0,0) y '' → NULL
+  al pasar de raw a staging · quality_report en 0 advertencias.
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint5-nb01-data-quality develop
+  git add python/requirements.txt python/notebooks/01_data_quality.ipynb docs/
+  git commit -m "feat: ml requirements stack and notebook 01 data quality"
+  git push -u origin feature/sprint5-nb01-data-quality
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
 ## Docs — checklist pre-merge en §10.3 (git-workflow.md)
 
 - **Objetos revisables:**
