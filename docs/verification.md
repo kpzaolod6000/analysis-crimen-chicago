@@ -258,40 +258,6 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git push origin develop
   ```
 
----
-
-## Sprint 5 — Python EDA + ML Nivel 1
-
-### Paso 1 — Entorno ML + notebook 01_data_quality `[ ]` (pendiente de tu verificación)
-
-- **Objetos revisables:**
-  - `python/requirements.txt` — stack del sprint (numpy/pandas/scipy/
-    scikit-learn/matplotlib/ipykernel/jupyterlab, con comentarios)
-  - `python/notebooks/01_data_quality.ipynb` — EDA de calidad sobre dev
-    (18 celdas; conexión psycopg2, no CSV; kernel `chicago-crimes`)
-- **Verificar contenido:**
-  - `pytest python/tests -q` → 111 passed (suite sin cambios)
-  - `ruff check python` → All checks passed
-- **Verificar (tu parte, deps + notebook):**
-  ```powershell
-  .\.venv\Scripts\python.exe -m pip install -r python\requirements.txt
-  .\.venv\Scripts\python.exe -m ipykernel install --user --name chicago-crimes --display-name "Python (chicago-crimes)"
-  # abrir VS Code en python/notebooks/01_data_quality.ipynb,
-  # seleccionar kernel "Python (chicago-crimes)" y Run All
-  # (docker compose up -d antes: postgres en 5432 + datos cargados)
-  ```
-  Esperado: 19.642 filas · ventana sept-2026 · nulos coherentes (ward/x/y
-  los mayores) · top primary_Type THEFT/BATTERY/... · (0,0) y '' → NULL
-  al pasar de raw a staging · quality_report en 0 advertencias.
-- **Git:**
-  ```powershell
-  git switch -c feature/sprint5-nb01-data-quality develop
-  git add python/requirements.txt python/notebooks/01_data_quality.ipynb docs/
-  git commit -m "feat: ml requirements stack and notebook 01 data quality"
-  git push -u origin feature/sprint5-nb01-data-quality
-  # CI verde (checklist §10.3) → merge --no-ff a develop
-  ```
-
 ## Docs — checklist pre-merge en §10.3 (git-workflow.md)
 
 - **Objetos revisables:**
@@ -568,4 +534,58 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # CI verde → merge --no-ff a develop → luego release-0.4.0 (§9)
   # (ese commit lleva el registro del fix + el cierre: mensaje sugerido
   # "docs: record view-test fix and close sprint 4 (bump 0.4.0)")
+  ```
+
+---
+
+## Sprint 5 — Python EDA + ML Nivel 1
+
+### Paso 1 — Entorno ML + notebook 01_data_quality `[x]` (merged en develop)
+
+- **Objetos revisables:**
+  - `python/requirements.txt` — stack del sprint (numpy/pandas/scipy/
+    scikit-learn/matplotlib/ipykernel/jupyterlab, con comentarios)
+  - `python/notebooks/01_data_quality.ipynb` — EDA de calidad sobre dev
+    (18 celdas; conexión psycopg2, no CSV; kernel `chicago-crimes`)
+- **Verificar contenido:**
+  - `pytest python/tests -q` → 111 passed (suite sin cambios)
+  - `ruff check python` → All checks passed
+- **Verificar (deps + notebook):**
+  ```powershell
+  .\.venv\Scripts\python.exe -m pip install -r python\requirements.txt
+  .\.venv\Scripts\python.exe -m ipykernel install --user --name chicago-crimes --display-name "Python (chicago-crimes)"
+  # VS Code → python/notebooks/01_data_quality.ipynb → kernel
+  # "Python (chicago-crimes)" → Run All (docker compose up -d antes)
+  ```
+  Esperado: 19.642 filas · ventana sept-2026 · quality_report en 0
+  advertencias.
+
+### Paso 2 — Notebook 02_temporal_trends `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `python/notebooks/02_temporal_trends.ipynb` — 15 celdas: consume las
+    vistas del Sprint 4 (`vw_monthly_crimes`, `vw_month_over_month`,
+    `vw_day_hour`) + `fact_crime`/`dim_date`; NO re-agrega en pandas.
+- **Verificar contenido:**
+  - `pytest python/tests -q` → 111 passed (suite sin cambios)
+  - `ruff check python` → All checks passed
+  - Las 5 queries del notebook ya se validaron contra dev (asistente):
+    ventana 19.642/30 días/1 mes · día-semana · weekend 666.9 vs 650.3 por
+    día · heatmap 168 celdas (7×24) · MoM 1 fila NULL.
+- **Verificar (tu parte):**
+  ```powershell
+  # VS Code → python/notebooks/02_temporal_trends.ipynb → kernel
+  # "Python (chicago-crimes)" → Run All
+  ```
+  Esperado: ventana sept-2026 (1 mes) · tendencia mensual con 1 punto (nota
+  de "ampliar ventana") · día-semana con barras · weekend ~667 vs ~650 por
+  día · heatmap 7×24 poblado · MoM 1 fila con NULLs. Los gráficos mensuales
+  se llenan al cargar la ventana de 1 año (Sprint 2 · Paso 3).
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint5-nb02-temporal develop
+  git add python/notebooks/02_temporal_trends.ipynb docs/
+  git commit -m "feat: notebook 02 temporal trends over sprint 4 views"
+  git push -u origin feature/sprint5-nb02-temporal
+  # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
