@@ -26,6 +26,191 @@ Reglas:
 
 ---
 
+## [2026-10-16] Sprint 3 · Paso 4 — Carga staging → warehouse (load_warehouse.sql)
+
+**Qué:** `database/functions/load_warehouse.sql` (nuevo): 6 funciones SQL
+idempotentes — `load_dim_date(start, end)` (calendario 2001-2030 con
+`generate_series` + CASE fijos para month/day_name, determinista), 3 cargas
+de dims (`dim_crime_type`, `dim_location`, `dim_district`) con
+`SELECT DISTINCT` + `ON CONFLICT DO NOTHING`, `load_fact_crime()` con LEFT
+JOINs `IS NOT DISTINCT FROM` para resolver las keys surrogadas y
+`ON CONFLICT (crime_id) DO UPDATE` (re-cargas aplican correcciones de
+Socrata), y el orquestador `load_warehouse()` (orden calendario → dims →
+fact, con NOTICE por paso). Target `load-warehouse` en el `Makefile`
+(aplica funciones + ejecuta el orquestador). 10 tests de integración
+(test_warehouse_load.py) con 8 filas fixture: dim_date completa y sus
+atributos, dims dedupeadas (6/7/6), fact excluye filas sin date (7 de 8),
+resolución completa de keys vía joins (LW-01 → Austin/THEFT/hour 10),
+FKs NULL para unknown (LW-06 área 0, LW-08 primary_type vacío, probando el
+contrato del fix) y recarga idempotente (7/6/7/6 estables).
+**Por qué:** cierre del modelo dimensional poblado (result del Sprint 3):
+la estrella deja de estar vacía. n8n orquesta, PostgreSQL transforma: la
+carga es SQL puro re-ejecutable. `IS NOT DISTINCT FROM` en los joins de
+dims maneja NULLs de iucr/block sin perder matches. `dim_community_area`
+NO se carga desde staging: su fuente es el seed con los nombres oficiales
+(Paso 3). Dos bugs míos corregidos antes de entregar: texto corrupto en el
+último test, y orden del fixture (sembraba las 77 areas ANTES del
+TRUNCATE, que las borraba).
+**Archivos:**
+- `database/functions/load_warehouse.sql` — 6 funciones (nuevo)
+- `Makefile` — target `load-warehouse` (nuevo) + .PHONY
+- `python/tests/integration/test_warehouse_load.py` — 10 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `python/tests/integration` → 63 passed (53 + 10) · suite total → 100 passed
+- `ruff check python` → limpio
+**Cómo verificar:**
+- Checklist del Paso 4 en `docs/verification.md` (pytest, ruff, cargar la
+  estrella en dev con el año real y queries de sanity: fact == staging
+  con fechas, aliases de nombres vía joins).
+
+## [2026-10-16] Sprint 3 · Fix 1 — Contrato ''→NULL en staging (declarado pero no implementado)
+
+**Qué:** `003_staging.sql` ahora envuelve los 7 campos de texto en
+`nullif(btrim(col), '')` (antes solo `btrim`), y
+`test_empty_string_becomes_null` corregido para que codifique el contrato
+real (antes asertaba `== ""`, que enmascaraba el bug pese a su nombre).
+**Por qué:** el contrato declarado (header de 003 y changelog del Paso 1)
+dice "btrim + ''→NULL en texto", pero el SQL no lo implementaba y el test —
+escrito por error con `assert == ""` en vez de `is None` — hacía pasar
+verdes runs que no probaban la regla. Descubierto al releer 003 en la
+preparación del Paso 4: `dim_crime_type.primary_type` es NOT NULL y sin esta
+regla la carga crearía un miembro de dimensión con tipo vacío.
+**Archivos:**
+- `database/migrations/003_staging.sql` — 7 campos de texto con nullif
+- `python/tests/integration/test_staging_schema.py` — aserción corregida
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- Conteo de suite sin cambios (90 total: 37 unit + 53 integration); el test
+  ahora SÍ verifica la regla. Verificación local obligatoria antes de merge.
+**Cómo verificar:**
+- Checklist "Fix — contrato staging + F401" en `docs/verification.md`
+  (incluye re-aplicar 003 en dev y sanity contra datos reales).
+
+## [2026-10-16] Sprint 3 · Fix 2 — F401 en test del seed (CI del seed rojo, tests skipped)
+
+**Qué:** eliminado el `from pathlib import Path` sin uso en
+`python/tests/integration/test_community_areas_seed.py` (F401 unused-import).
+**Por qué:** los runs 20-21 del CI (seed y su merge a develop, 5470280 y
+7b56eae) fallaron en el step "Lint (ruff)" y los tests de integración
+quedaron SKIPPED — los commits se mergeatearon sin verificar Actions. El
+ruff local tampoco se corrió en esa verificación. Nota: los runs 18-19
+(dims-fact) sí fueron verdes, por eso el F401 del seed es el primer FAILO
+del lint desde el hotfix 0.2.1.
+**Archivos:**
+- `python/tests/integration/test_community_areas_seed.py` — import eliminado
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica funcionalmente (la opción de referencia Path es innecesaria:
+  SEED_PATH se construye sobre REPO_ROOT que importamos del conftest).
+**Cómo verificar:**
+- `ruff check python` → All checks passed
+- Tras el fix merge: CI de develop en verde (Actions, run #22+)
+
+## [2026-10-14] Sprint 3 · Paso 3 — Seed de las 77 community areas
+
+**Qué:** `database/seeds/community_areas.sql` (nuevo): UPSERT idempotente de
+las 77 community areas oficiales en `warehouse.dim_community_area` (número +
+nombre). Nuevo target `seed` en el `Makefile` (mismo patrón que `migrate`,
+loop sobre `database/seeds/*.sql`). 6 tests de integración
+(test_community_areas_seed.py): total 77, numeración completa 1–77, sin
+nombres nullos, idempotencia del seed (re-aplicar → sigue 77), caso del
+apóstrofe ("O'Hare") y spot checks (Lake View no "Lakeview", Logan Square,
+Loop, Hyde Park).
+**Por qué:** tercer ítem del Sprint 3. El seed se extrajo de la API oficial
+(NO escrito de memoria); el descubrimiento: `cauq-8yn6` (la ref. del plan)
+es solo la **vista de mapa** del dataset tabular **`igwz-8jzy`** — corregido
+el plan (Sprint 3 y §12). El source trae nombres EN MAYÚSCULAS y "OHARE"; el
+seed guarda Title Case + "O'Hare" (nombre canónico), transformación
+documentada en el encabezado del SQL. `ON CONFLICT DO UPDATE` (UPSERT del
+skill) para que re-aplicar el seed refresque nombres sin duplicar.
+**Archivos:**
+- `database/seeds/community_areas.sql` — 77 filas + UPSERT (nuevo)
+- `Makefile` — target `seed` (nuevo) + `.PHONY` actualizado
+- `python/tests/integration/test_community_areas_seed.py` — 6 tests (nuevo)
+- `docs/plan.md` — Sprint 3 y §12: dataset tabular corregido a `igwz-8jzy`
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `python/tests/integration` → 53 passed (47 + 6) · suite total → 90 passed
+- `ruff check python` → limpio
+**Cómo verificar:**
+- Checklist del Paso 3 en `docs/verification.md` (DB de pruebas, pytest,
+  ruff, `make seed` en dev y 2 queries de sanity con nombres).
+
+## [2026-10-14] Sprint 3 · Paso 2 — Modelo dimensional (004_dims_fact.sql)
+
+**Qué:** migración `004_dims_fact.sql` con el warehouse dimensional del plan
+§6: `dim_date` (date_key yyyymmdd estilo Kimball, month/day_name a generar
+con CASE fijo — determinista, sin locale), `dim_crime_type` y `dim_location`
+(grano = combinación natural con `UNIQUE ... NULLS NOT DISTINCT` para que los
+NULLs no dupliquen), `dim_district`, `dim_community_area` (nombre llega con
+el seed del Paso 3) y `fact_crime` (crime_id natural UNIQUE, FK date_key NOT
+NULL, demás FKs NULLables, CHECK hour 0-23, índices solo en las FKs de
+filtro/agrupación). La población desde staging llega en el Paso 4; aquí va
+solo DDL. + 10 tests de integración (estructura, PK/UNIQUE, enforcement de
+FKs, FKs NULLables, CHECK de hour, dedupe con NULLs, índices). Fixture
+`seeded_date` con `ON CONFLICT DO NOTHING` para que ningún test dependa del
+orden de ejecución.
+**Por qué:** segundo ítem del Sprint 3. Separar DDL de carga mantiene los
+pasos pequeños y revisables; NULLS NOT DISTINCT (PG15+) evita el clásico
+"NULL != NULL" que duplicaría miembros de dimensión con iucr/block nulos.
+**Archivos:**
+- `database/migrations/004_dims_fact.sql` — dims + fact + índices (nuevo)
+- `python/tests/integration/test_dims_fact_schema.py` — 10 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `python/tests/integration` → 47 passed (37 + 10) · suite total → 84 passed
+- `ruff check python` → limpio
+**Cómo verificar:**
+- Checklist del Paso 2 en `docs/verification.md` (DB de pruebas, pytest,
+  ruff, aplicar en dev y `\dt warehouse.*`).
+
+## [2026-10-14] Docs — checklist pre-merge en el cheat sheet (§10.3)
+
+**Qué:** §10.3 de `docs/git-workflow.md` ahora lista explícitamente qué
+verificar ANTES de mergear un feature a `develop`: (1) run del CI en verde en
+la pestaña Actions (el push a `feature/**` lo dispara solo) y (2) checklist
+del paso en `docs/verification.md` ejecutado localmente.
+**Por qué:** pedido del usuario: que el "qué hacer al terminar cada cambio"
+quede anotado en el doc de git — hasta ahora esa verificación pre-merge solo
+vivía en el chat.
+**Archivos:**
+- `docs/git-workflow.md` — §10.3 con checklist pre-merge
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica (solo documentación).
+**Cómo verificar:**
+- Leer §10.3 y comparar con lo ejecutado al cerrar `feature/sprint3-staging`
+  (debe coincidir: CI verde en Actions + pytest/ruff local antes del merge).
+
+## [2026-10-14] Sprint 3 · Paso 1 — Capa staging (view staging.crimes)
+
+**Qué:** migración `003_staging.sql`: `staging.crimes` como **VIEW** sobre
+`raw.crimes` con las reglas de limpieza del skill chicago-data-quality —
+`btrim` + `''→NULL` en campos de texto, coordenadas `(0,0)` y fuera de rango
+`→NULL` (ambas), coordenadas parciales se conservan, `community_area` fuera
+de 1–77 `→NULL` (los `0` de registros viejos = unknown). Sin filtrado de
+filas: eso lo decide el warehouse al poblar fact. + 11 tests de integración
+(test_staging_schema.py: sembrando 9 filas raw conocidas y verificando cada
+regla contra la view). Corregida la numeración en plan.md (002 ya lo ocupaba
+002_operational.sql → staging es 003, dims será 004).
+**Por qué:** primer paso del Sprint 3 según el skill chicago-postgres
+("staging limpia; warehouse solo se alimenta desde staging"). La decisión de
+VIEW sobre tabla: cero datos duplicados, siempre sincronizada con raw, la
+transformación queda en una sentencia declarativa (principio "n8n orquesta,
+PostgreSQL transforma") y no requiere un paso de carga aparte.
+**Archivos:**
+- `database/migrations/003_staging.sql` — CREATE OR REPLACE VIEW (nuevo)
+- `python/tests/integration/test_staging_schema.py` — 11 tests (nuevo)
+- `docs/plan.md` — numeración de migraciones Sprint 3 corregida
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `python/tests/integration` → 37 passed (26 + 11) · suite total → 74 passed
+- `ruff check python` → limpio
+**Cómo verificar:**
+- Checklist del Paso 1 en `docs/verification.md` (pytest, ruff, aplicar la
+  migración en dev y 3 queries de sanity contra datos reales).
+
 ## [2026-10-14] Docs — Cheat sheet de git por escenario + sección GitHub Actions
 
 **Qué:** en `docs/git-workflow.md` se amplió §8 (ahora "CI y ramas (GitHub

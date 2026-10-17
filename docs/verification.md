@@ -257,3 +257,187 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git branch -d feature/docs-git-cheatsheet
   git push origin develop
   ```
+
+## Docs — checklist pre-merge en §10.3 (git-workflow.md)
+
+- **Objetos revisables:**
+  - `docs/git-workflow.md` — §10.3: checklist "está verde" antes del merge
+    (CI en Actions + checklist del paso en este archivo).
+- **Verificar contenido:**
+  - Leer §10.3: coincide con lo ejecutado al cerrar `feature/sprint3-staging`.
+- **Git:**
+  ```powershell
+  git switch -c feature/docs-premerge-check develop
+  git add docs/
+  git commit -m "docs: add pre-merge green checklist to git cheat sheet"
+  git push -u origin feature/docs-premerge-check
+  git switch develop
+  git merge --no-ff feature/docs-premerge-check
+  git branch -d feature/docs-premerge-check
+  git push origin develop
+  ```
+
+## Sprint 3 — Data Warehouse
+
+### Paso 1 — Migración 003_staging (view de limpieza) `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `database/migrations/003_staging.sql` — `staging.crimes` como VIEW sobre
+    `raw.crimes`: btrim/''→NULL en texto, coords (0,0) y fuera de rango
+    →NULL (ambas), parciales se conservan, `community_area` solo 1–77.
+  - `python/tests/integration/test_staging_schema.py` — 11 tests (nuevo)
+  - `docs/plan.md` — numeración corregida (002 ya ocupado por operational)
+- **Verificar contenido:**
+  - `docker compose -f docker-compose.test.yml up -d` (si no está levantada)
+  - `pytest python/tests/integration -v` → 37 passed (26 + 11)
+  - `pytest python/tests -q` → 74 passed (unit + integration)
+  - `ruff check python` → All checks passed
+- **Verificar en dev (con los datos reales del año cargado):**
+  ```powershell
+  docker compose exec postgres psql -U postgres -d chicago_crimes -f /database/migrations/003_staging.sql
+  # → CREATE VIEW (idempotente si se re-ejecuta)
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT count(*) FROM staging.crimes;"
+  # → igual al count de raw.crimes
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT count(*) FROM staging.crimes WHERE latitude = 0 AND longitude = 0;"
+  # → 0 (los (0,0) quedaron NULL; comparar con raw.crimes que los tiene)
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT count(*) FROM raw.crimes WHERE community_area NOT BETWEEN 1 AND 77;"
+  # → los que sean >0 en raw, en staging son NULL
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint3-staging develop
+  git add database/ python/ docs/
+  git commit -m "feat: staging view over raw.crimes with cleaning rules"
+  git push -u origin feature/sprint3-staging
+  # tras CI verde: merge --no-ff a develop
+  ```
+
+### Paso 2 — Migración 004_dims_fact (modelo dimensional) `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `database/migrations/004_dims_fact.sql` — `warehouse.dim_date`,
+    `dim_crime_type`, `dim_location`, `dim_district`, `dim_community_area` +
+    `fact_crime` (FKs, UNIQUE naturales NULLS NOT DISTINCT, 3 índices)
+  - `python/tests/integration/test_dims_fact_schema.py` — 10 tests (nuevo)
+- **Verificar contenido:**
+  - `docker compose -f docker-compose.test.yml up -d` (si no está levantada)
+  - `pytest python/tests/integration -v` → 47 passed (37 + 10)
+  - `pytest python/tests -q` → 84 passed (unit + integration)
+  - `ruff check python` → All checks passed
+- **Verificar en dev:**
+  ```powershell
+  docker compose exec postgres psql -U postgres -d chicago_crimes -f /database/migrations/004_dims_fact.sql
+  # → CREATE SCHEMA/TABLE/INDEX (idempotente si se re-ejecuta)
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "\dt warehouse.*"
+  # → 6 tablas: 5 dims + fact_crime (todas vacías: la carga es el Paso 4)
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint3-dims-fact develop
+  git add database/ python/ docs/
+  git commit -m "feat: dimensional model (dims + fact_crime) with constraints"
+  git push -u origin feature/sprint3-dims-fact
+  # checklist pre-merge de git-workflow.md §10.3 y luego merge --no-ff a develop
+  ```
+
+### Paso 3 — Seed community areas (77) `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `database/seeds/community_areas.sql` — 77 filas, UPSERT idempotente;
+    fuente = dataset tabular `igwz-8jzy` (extracto 2026-10-14 via API)
+  - `Makefile` — target `seed` nuevo (loop sobre `database/seeds/*.sql`)
+  - `python/tests/integration/test_community_areas_seed.py` — 6 tests (nuevo)
+  - `docs/plan.md` — ref. del dataset corregida (`igwz-8jzy`, `cauq-8yn6`
+    solo es su vista de mapa)
+- **Verificar contenido:**
+  - `docker compose -f docker-compose.test.yml up -d` (si no está levantada)
+  - `pytest python/tests/integration -v` → 53 passed (47 + 6)
+  - `pytest python/tests -q` → 90 passed (unit + integration)
+  - `ruff check python` → All checks passed
+- **Verificar en dev:**
+  ```powershell
+  make seed    # o: docker compose exec postgres psql -U postgres -d chicago_crimes -f /database/seeds/community_areas.sql
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT count(*) FROM warehouse.dim_community_area;"
+  # → 77
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT community_area, community_area_name FROM warehouse.dim_community_area WHERE community_area IN (22, 41, 76);"
+  # → 22 Logan Square · 41 Hyde Park · 76 O'Hare
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint3-seed-areas develop
+  git add database/ python/ Makefile docs/
+  git commit -m "feat: seed 77 community areas from official dataset"
+  git push -u origin feature/sprint3-seed-areas
+  # CI verde → merge --no-ff a develop (checklist §10.3)
+  ```
+
+### Fix — Contrato staging ''→NULL + F401 del seed `[ ]`
+
+- **Qué pasó:** el CI del seed (runs 20-21) falló en "Lint (ruff)" (F401:
+  `Path` sin usar en `test_community_areas_seed.py`) y los tests quedaron
+  SKIPPED. Además, releer `003_staging.sql` para el Paso 4 destapó que el
+  contrato documentado ("btrim + ''→NULL") no estaba implementado, y el test
+  `test_empty_string_becomes_null` codificaba el bug (`== ""` en vez de
+  `is None`).
+- **Objetos revisables:**
+  - `database/migrations/003_staging.sql` — 7 campos de texto con
+    `nullif(btrim(col), '')`
+  - `python/tests/integration/test_staging_schema.py` — aserción `is None`
+  - `python/tests/integration/test_community_areas_seed.py` — import `Path`
+    eliminado
+- **Verificar contenido:**
+  - `pytest python/tests -q` → 90 passed (37 unit + 53 integration)
+  - `ruff check python` → All checks passed
+- **Verificar en dev (re-aplicar la view corregida):**
+  ```powershell
+  docker compose exec postgres psql -U postgres -d chicago_crimes -f /database/migrations/003_staging.sql
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT count(*) FROM staging.crimes WHERE primary_type = '';"
+  # → 0 (los '' y solo-espacios pasaron a NULL)
+  ```
+- **Lección (regla de oro):** el checklist pre-merge §10.3 incluye CI en
+  Actions — no merge con run rojo, ni aunque el push local haya estado verde.
+- **Git:**
+  ```powershell
+  git switch -c fix/staging-contract develop
+  git add database/ python/ docs/
+  git commit -m "fix: nullify empty strings in staging view (declared contract)"
+  git push -u origin fix/staging-contract
+  # CI en verde (¡es el fix que lo devuelve!) → merge --no-ff a develop
+  ```
+
+### Paso 4 — Carga staging → warehouse `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `database/functions/load_warehouse.sql` — 6 funciones idempotentes
+    (calendario, 3 dims, fact con resolución de keys, orquestador)
+  - `Makefile` — target `load-warehouse` nuevo
+  - `python/tests/integration/test_warehouse_load.py` — 10 tests (nuevo)
+- **Verificar contenido:**
+  - `pytest python/tests/integration -v` → 63 passed (53 + 10)
+  - `pytest python/tests -q` → 100 passed (unit + integration)
+  - `ruff check python` → All checks passed
+- **Verificar en dev (¡la estrella poblada con tu año real!):**
+  ```powershell
+  make load-warehouse    # (PowerShell: ver equivalencia abajo)
+  ```
+  Equivalente PowerShell (make no instalado):
+  ```powershell
+  docker compose exec -T postgres psql -U postgres -d chicago_crimes -f /database/functions/load_warehouse.sql -c "SELECT warehouse.load_warehouse();"
+  ```
+  Sanity (los conteos exactos los dan los NOTICEs de la función):
+  ```powershell
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT (SELECT count(*) FROM warehouse.fact_crime) AS fact, (SELECT count(*) FROM staging.crimes WHERE date IS NOT NULL) AS esperado;"
+  # fact == esperado (solo difieren si raw cambió entre medio)
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT ca.community_area_name, count(*) FROM warehouse.fact_crime f JOIN warehouse.dim_community_area ca ON ca.community_area_key = f.community_area_key GROUP BY 1 ORDER BY 2 DESC LIMIT 5;"
+  # → las 5 areas con más crímenes de tu año, con nombres reales
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT warehouse.load_warehouse(); SELECT count(*) FROM warehouse.fact_crime;"
+  # re-ejecutar la carga → count no cambia (UPSERT idempotente)
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint3-load-warehouse develop
+  git add database/ python/ Makefile docs/
+  git commit -m "feat: load staging into warehouse dims and fact"
+  git push -u origin feature/sprint3-load-warehouse
+  # CI en Actions verde → merge --no-ff a develop
+  ```

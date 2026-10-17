@@ -217,8 +217,10 @@ Cada sprint incluye sus tests (ver [docs/testing.md](testing.md)).
 - Resultado: **Socrata → n8n → raw.crimes automático** (primera meta real).
 
 ### Sprint 3 — Data Warehouse `[ ]`
-- [ ] `002_staging.sql` (limpieza/tipos), `003_dims_fact.sql`
-- [ ] Seed: community areas (77) del dataset oficial `cauq-8yn6`
+- [ ] `003_staging.sql` (limpieza/tipos), `004_dims_fact.sql`
+      (la numeración `002` la ocupa `002_operational.sql` del Sprint 2)
+- [ ] Seed: community areas (77) del dataset tabular `igwz-8jzy`
+      (`cauq-8yn6`, el de la ref. original, es solo su vista de mapa)
 - [ ] Tests de integración: integridad referencial fact↔dims, conteos
 - Resultado: modelo dimensional poblado desde raw.
 
@@ -280,5 +282,6 @@ La complejidad correcta ya está en el stack elegido.
 ## 12. Datos fuente
 
 - Crímenes 2001–presente: https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2
-- Boundaries – Community Areas (77): https://data.cityofchicago.org/Facilities-Geographic-Boundaries/Boundaries-Community-Areas-current-/cauq-8yn6
+- Boundaries - Community Areas (tabular, 77): https://data.cityofchicago.org/Facilities-Geographic-Boundaries/Boundaries-Community-Areas-current-/igwz-8jzy
+  (la ref. original `cauq-8yn6` es solo su vista de mapa; campo número: `area_numbe`, nombre: `community`)
 - Socrata docs (SoQL, paginación): https://dev.socrata.com/docs/
