@@ -228,11 +228,14 @@ Cada sprint incluye sus tests (ver [docs/testing.md](testing.md)).
 - Resultado: modelo dimensional poblado desde raw (19.642 filas en dev;
   release `v0.3.0`).
 
-### Sprint 4 — SQL Analytics `[ ]`
-- [ ] Vistas: `vw_monthly_crimes`, `vw_area_crime_ranking`,
+### Sprint 4 — SQL Analytics `[x]`
+- [x] Vistas: `vw_monthly_crimes`, `vw_area_crime_ranking`,
       `vw_month_over_month`, `vw_day_hour`, `vw_area_summary`
-- [ ] Tests: resultados de vistas contra fixtures conocidos
-- Resultado: SQL analítico con window functions verificado.
+      (`database/views/analytics.sql`, target `views` en el Makefile)
+- [x] Tests: resultados de vistas contra fixtures conocidos
+      (11 tests, fixture V-01..V-10 con 1 fila sin área)
+- Resultado: SQL analítico con window functions verificado (staging →
+  warehouse → vistas lista para consumir desde la API; release `v0.4.0`).
 
 ### Sprint 5 — Python EDA + ML Nivel 1 `[ ]`
 - [ ] Notebooks 01–05 (data quality → hotspots)

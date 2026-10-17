@@ -26,6 +26,28 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 4 — Cierre del sprint (bump 0.4.0)
+
+**Qué:** Sprint 4 marcado `[x]` en `docs/plan.md` (Paso 1 = única unidad del
+sprint: vistas + tests) y estado del README actualizado (Sprint 4 hecho,
+próximo Sprint 5). Verificación en dev quedó ejecutada por el usuario:
+`vw_monthly_crimes` con los 19.642 reales (sept-2026 vía rate real),
+ranking con nombres reales, MoM con prev NULL (única fila del mes) y
+`\dv` las 5 vistas.
+**Por qué:** cierre de sprint según git-workflow §5. Con esto el branching
+MVP (charlas tarea de plan §10) queda: Socrata → n8n → PostgreSQL → vistas
+analíticas → (siguiente: Python/EDA + FastAPI + D3).
+**Archivos:**
+- `docs/plan.md` — Sprint 4 `[x]`
+- `README.md` — §Estado
+- `docs/changelog.md`, `docs/verification.md` — registro y nota
+**Tests:**
+- Suite 100 passed (fixture tests + vistas incluidas); sanity en dev
+  verificado por el usuario (checklist del Paso 1).
+**Cómo verificar:**
+- `docs/plan.md` muestra Sprint 4 `[x]`; tras el release: `git tag -l`
+  lista `v0.4.0` y main/develop comparten el merge `--no-ff` del release.
+
 ## [2026-10-17] Sprint 4 · Paso 1 — Vistas analíticas (analytics.sql)
 
 **Qué:** `database/views/analytics.sql` (nuevo) con las 5 vistas del plan §6,

@@ -454,7 +454,7 @@ registro histórico de `docs/changelog.md` y de la estrategia de
 
 ## Sprint 4 — SQL Analytics
 
-### Paso 1 — Vistas analíticas (analytics.sql) `[ ]` (pendiente de tu verificación)
+### Paso 1 — Vistas analíticas (analytics.sql) `[x]` (✅ verificado en dev por el usuario, 2026-10-17)
 
 - **Objetos revisables:**
   - `database/views/analytics.sql` — 5 vistas en schema `warehouse`:

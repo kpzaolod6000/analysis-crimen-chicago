@@ -36,11 +36,11 @@ n8n · PostgreSQL 16 · Python 3.12 · FastAPI · D3.js · Playwright · Power A
 
 ## Estado
 
-Sprint 3 completado (capa `staging` como view de limpieza, modelo
-dimensional `dims` + `fact_crime`, seed de las 77 community areas y carga
-idempotente staging → warehouse con `load_warehouse()`). Release: `v0.3.0`.
-Próximo paso: **Sprint 4 — SQL Analytics** (vistas analíticas con window
-functions).
+Sprint 4 completado (5 vistas analíticas en `warehouse` con window
+functions — mensual, ranking de áreas con RANK, month-over-month con LAG,
+heatmap día×hora y resumen por área — más tests con fixtures conocidos).
+Release: `v0.4.0`. Próximo paso: **Sprint 5 — Python EDA + ML Nivel 1**
+(notebooks 01–05, features semanales y DBSCAN).
 
 Antes de empezar, instala el entorno siguiendo
 [docs/dev-environment.md](docs/dev-environment.md) §7 (Docker Desktop, Node
