@@ -26,6 +26,35 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 5 · Paso 1 — Entorno ML + notebook 01_data_quality
+
+**Qué:** `python/requirements.txt` extendido con el stack del sprint (numpy,
+pandas, scipy, scikit-learn, matplotlib, ipykernel, jupyterlab — con
+secciones comentadas por uso) + notebook `01_data_quality.ipynb` (18
+celdas, kernel `chicago-crimes` sobre el `.venv`): conecta a dev (5432) con
+psycopg2 sin SQLAlchemy, carga `staging.crimes` completa, perfila dtypes/
+describe/nulos (con gráfico), muestra top primary_type, tasas
+arrest/domestic + conteo por año, histograma por hora del día, top-10
+community areas con nombres (JOIN del seed), comparativo raw vs staging
+(zero-coords y vacíos → nulos) y las métricas de `ingestion.quality`
+(la misma fuente de los data tests). Cierra con una celda de conclusiones
+como guía de preguntas.
+**Por qué:** primer puerta de Sprint 5 (Python EDA). El notebook se conecta
+a la DB real del repo (no a CSV), usa `staging` (la capa limpia, principio
+"PostgreSQL transforma" — el EDA también debe ver datos saneados) y reusa
+`quality.py` para no duplicar métricas en pandas. Numpy/pandas ya estaban
+en el venv (2.5.3 / 3.0.6, fijadas en este requirements).
+**Archivos:**
+- `python/requirements.txt` — libro del stack del sprint
+- `python/notebooks/01_data_quality.ipynb` — notebook (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite (notebook analítico; no hay código de producción).
+  La suite sigue en 111 passed — `ruff check python` para confirmar.
+**Cómo verificar:**
+- Checklist "Sprint 5 · Paso 1" en `docs/verification.md` (pip install,
+  registro del kernel, correr el notebook y revisar outputs sane).
+
 ## [2026-10-17] Sprint 4 · Fix 1 — Suite de vistas estabilizado para CI
 
 **Qué:** 6 tests rojos tras integrar las vistas (runs de Actions rojos en la
