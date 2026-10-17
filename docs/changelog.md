@@ -26,6 +26,36 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 5 · Paso 2 — Notebook 02_temporal_trends
+
+**Qué:** `python/notebooks/02_temporal_trends.ipynb` (15 celdas): patrones
+temporales del crimen consultando las **vistas del Sprint 4** (no re-agrega
+en pandas): ventana de datos real, tendencia mensual (`vw_monthly_crimes`,
+línea dual crímenes + % arresto), month-over-month (`vw_month_over_month`),
+día de la semana (ISO, desde `fact_crime`+`dim_date`), fin de semana vs entre
+semana (promedio por día vía `is_weekend`), y heatmap día×hora
+(`vw_day_hour` pivoteado a matriz 7×24 con `imshow`). El helper `q()`
+convierte columnas `Decimal` → `float` (PG `round(numeric)` llega como
+Decimal y matplotlib no lo grafica: "no numeric data to plot"). Las celdas
+mensuales degradan con gracia si hay <2 meses cargados.
+**Por qué:** segundo paso del Sprint 5. Respeta "PostgreSQL transforma,
+Python presenta": el notebook solo consulta las vistas analíticas y grafica.
+Con la ventana actual de dev (~1 mes, sept-2026) los patrones de día/hora ya
+son significativos; los mensuales se llenan al ampliar la ventana (Sprint 2
+Paso 3).
+**Archivos:**
+- `python/notebooks/02_temporal_trends.ipynb` — notebook (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite (notebook analítico). Las queries SQL se validaron contra
+  dev: ventana (19.642/30 días/1 mes), día-semana, weekend (666.9 vs 650.3
+  por día), heatmap (168 celdas 7×24), MoM (1 fila NULL). El plot de weekend
+  se ejecutó headless (Agg) tras el fix Decimal→float: sin TypeError. Suite
+  sigue en 111 passed.
+**Cómo verificar:**
+- Checklist "Sprint 5 · Paso 2" en `docs/verification.md` (Run All del
+  notebook con kernel `chicago-crimes` y revisión de outputs/gráficos).
+
 ## [2026-10-17] Sprint 5 · Paso 1 — Entorno ML + notebook 01_data_quality
 
 **Qué:** `python/requirements.txt` extendido con el stack del sprint (numpy,
