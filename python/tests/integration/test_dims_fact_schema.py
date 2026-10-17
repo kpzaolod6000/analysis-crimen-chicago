@@ -79,9 +79,11 @@ def test_warehouse_tables_exist(dims_db):
     with dims_db.cursor() as cur:
         cur.execute(
             "SELECT table_name FROM information_schema.tables "
-            "WHERE table_schema = 'warehouse'"
+            "WHERE table_schema = 'warehouse' AND table_type = 'BASE TABLE'"
         )
         actual = {row[0] for row in cur.fetchall()}
+    # filtro BASE TABLE: el schema también contiene views analíticas
+    # (Sprint 4, database/views/analytics.sql) que no son tablas
     assert actual == WAREHOUSE_TABLES
 
 

@@ -26,6 +26,36 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 4 · Fix 1 — Suite de vistas estabilizado para CI
+
+**Qué:** 6 tests rojos tras integrar las vistas (runs de Actions rojos en la
+rama del Paso 1): (a) `test_five_views_exist` — `information_schema.views`
+no existe como catalog; va `information_schema.tables` con `table_type =
+'VIEW'`; (b) columnas rate/percent (`round(numeric)`) llegan como
+`Decimal`, no float — aserciones con `Decimal(...)`;
+(c) fixture: los nombres 25/77 eran inventados (en el catálogo real 25 =
+Austin, 77 = Edgewater) → fixture con los números correctos de los
+spot-checks del seed (22 = Logan Square, 41 = Hyde Park, 76 = O'Hare);
+(d) `test_warehouse_tables_exist` (Paso 2): filtra `table_type = 'BASE
+TABLE'` (el schema también tiene views); (e) `test_fact_null_fks_...`
+(Paso 4): `dict(fetchall())` con filas de 3 columnas → comprehension.
+**Por qué:** codifiqué los esperados de memoria (nombres de áreas, tipo de
+columna del catalog) en vez de leer el seed/documentación — la misma regla
+del seed ("extraer de la API oficial, no de memoria") aplica a los data
+tests. Además se mergeó el Paso 1 con Actions rojo (violación de §10.3):
+ningún merge con CI rojo, de ahora en más es la segunda lección.
+**Archivos:**
+- `python/tests/integration/test_analytics_views.py` — fixes (a), (b), (c)
+- `python/tests/integration/test_dims_fact_schema.py` — filtro BASE TABLE (d)
+- `python/tests/integration/test_warehouse_load.py` — dict comprehension (e)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest python/tests -q` → 111 passed (37 unit + 74 integration)
+- `ruff check python` → All checks passed
+**Cómo verificar:**
+- Checklist "Fix" del Sprint 4 en `docs/verification.md` (pytest local +
+  run del CI de la rama verde en Actions ANTES del merge).
+
 ## [2026-10-17] Sprint 4 — Cierre del sprint (bump 0.4.0)
 
 **Qué:** Sprint 4 marcado `[x]` en `docs/plan.md` (Paso 1 = única unidad del
@@ -42,8 +72,9 @@ analíticas → (siguiente: Python/EDA + FastAPI + D3).
 - `README.md` — §Estado
 - `docs/changelog.md`, `docs/verification.md` — registro y nota
 **Tests:**
-- Suite 100 passed (fixture tests + vistas incluidas); sanity en dev
-  verificado por el usuario (checklist del Paso 1).
+- Suite final 111 passed (37 unit + 74 integration; tras el Fix 1 del
+  suite de vistas). Sanity en dev verificado por el usuario (checklist
+  del Paso 1).
 **Cómo verificar:**
 - `docs/plan.md` muestra Sprint 4 `[x]`; tras el release: `git tag -l`
   lista `v0.4.0` y main/develop comparten el merge `--no-ff` del release.

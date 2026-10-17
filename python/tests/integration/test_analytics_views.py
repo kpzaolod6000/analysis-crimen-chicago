@@ -1,18 +1,23 @@
 """Integration tests for the Sprint 4 analytical views (database/views/analytics.sql).
 
 Seeds 10 known raw rows (V-01..V-10, spanning Aug/Sep 2026 and areas
-25/41/77 plus one row without area), runs warehouse.load_warehouse(),
+22/41/76 plus one row without area), runs warehouse.load_warehouse(),
 applies the analytics views and asserts every aggregate against counts
 computed by hand:
 
     months:        2026-08 -> 4 crimes / 2 arrests (50.0%)
                    2026-09 -> 6 crimes / 2 arrests (33.3%), prev 4
-    ranking:       25 -> 4 (rank 1, 44.4%), 41 -> 4 (rank 1, 44.4%),
-                   77 -> 1 (rank 3, 11.1%); V-10 (NULL area) excluded
+    ranking:       22 -> 4 (rank 1, 44.4%), 41 -> 4 (rank 1, 44.4%),
+                   76 -> 1 (rank 3, 11.1%); V-10 (NULL area) excluded
     day x hour:    (Sat,10,1) (Sat,11,2) (Sat,12,1) (Sat,22,1)
                    (Tue,10,3) (Thu,8,1) (Thu,23,1)
-    area summary:  25 {4,2,0,1}, 41 {4,1,1,3}, 77 {1,1,0,1}; sum 9
+    area summary:  22 {4,2,0,1}, 41 {4,1,1,3}, 76 {1,1,0,1}; sum 9
+
+Column types: PG numeric columns (rates/percentages) arrive as Decimal.
 """
+
+import datetime as dt
+from decimal import Decimal
 
 import pytest
 from conftest import REPO_ROOT, apply_migration
@@ -36,17 +41,17 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 
 SEED_ROWS = [
     ("V-01", "2026-08-01T10:00:00", "0820", "THEFT", "$500 AND UNDER",
-     "001XX N STATE ST", "STREET", 25, 4, None, None, True, False),
+     "001XX N STATE ST", "STREET", 22, 4, None, None, True, False),
     ("V-02", "2026-08-01T11:00:00", "0820", "THEFT", "$500 AND UNDER",
-     "001XX N STATE ST", "STREET", 25, 4, None, None, False, False),
+     "001XX N STATE ST", "STREET", 22, 4, None, None, False, False),
     ("V-03", "2026-08-01T11:00:00", "0310", "BATTERY", "SIMPLE",
      "02XX W MADISON ST", "APARTMENT", 41, 8, None, None, False, False),
     ("V-04", "2026-08-15T22:00:00", "0312", "ROBBERY", "ARMED: HANDGUN",
-     "030XX W OHIO ST", "STREET", 77, 2, None, None, True, False),
+     "030XX W OHIO ST", "STREET", 76, 2, None, None, True, False),
     ("V-05", "2026-09-01T10:00:00", "0820", "THEFT", "$500 AND UNDER",
-     "001XX N STATE ST", "STREET", 25, 4, None, None, True, False),
+     "001XX N STATE ST", "STREET", 22, 4, None, None, True, False),
     ("V-06", "2026-09-01T10:00:00", "0820", "THEFT", "$500 AND UNDER",
-     "001XX N STATE ST", "STREET", 25, 4, None, None, False, False),
+     "001XX N STATE ST", "STREET", 22, 4, None, None, False, False),
     ("V-07", "2026-09-01T10:00:00", "0820", "THEFT", "$500 AND UNDER",
      "035XX W NORTH AVE", "SIDEWALK", 41, 8, None, None, True, False),
     ("V-08", "2026-09-10T23:00:00", "0310", "BATTERY", "SIMPLE",
@@ -108,9 +113,9 @@ def test_five_views_exist(views_db):
     rows = query_rows(
         views_db,
         """
-        SELECT view_name FROM information_schema.views
-        WHERE table_schema = 'warehouse'
-        ORDER BY view_name
+        SELECT table_name FROM information_schema.tables
+        WHERE table_schema = 'warehouse' AND table_type = 'VIEW'
+        ORDER BY table_name
         """,
     )
     assert [r[0] for r in rows] == [
@@ -125,8 +130,6 @@ def test_five_views_exist(views_db):
 # ── vw_monthly_crimes ────────────────────────────────────────────────────
 
 def test_vw_monthly_crimes_full_rows(views_db):
-    import datetime as dt
-
     rows = query_rows(
         views_db,
         "SELECT month_date, year, month, month_name, crime_count, "
@@ -134,8 +137,8 @@ def test_vw_monthly_crimes_full_rows(views_db):
         "ORDER BY month_date",
     )
     assert rows == [
-        (dt.date(2026, 8, 1), 2026, 8, "August", 4, 2, 50.0),
-        (dt.date(2026, 9, 1), 2026, 9, "September", 6, 2, 33.3),
+        (dt.date(2026, 8, 1), 2026, 8, "August", 4, 2, Decimal("50.0")),
+        (dt.date(2026, 9, 1), 2026, 9, "September", 6, 2, Decimal("33.3")),
     ]
 
 
@@ -159,9 +162,9 @@ def test_vw_area_crime_ranking_full(views_db):
         "ORDER BY crime_rank, community_area",
     )
     assert [(r[0], r[1], r[2], r[3], r[4]) for r in rows] == [
-        (25, "Logan Square", 4, 44.4, 1),
-        (41, "Hyde Park", 4, 44.4, 1),
-        (77, "O'Hare", 1, 11.1, 3),
+        (22, "Logan Square", 4, Decimal("44.4"), 1),
+        (41, "Hyde Park", 4, Decimal("44.4"), 1),
+        (76, "O'Hare", 1, Decimal("11.1"), 3),
     ]
 
 
@@ -177,8 +180,6 @@ def test_vw_area_crime_ranking_excludes_unknown_area(views_db):
 # ── vw_month_over_month ──────────────────────────────────────────────────
 
 def test_vw_month_over_month_first_month_has_null_change(views_db):
-    import datetime as dt
-
     rows = query_rows(
         views_db,
         "SELECT month_date, crime_count, prev_crime_count, change_abs, "
@@ -186,7 +187,7 @@ def test_vw_month_over_month_first_month_has_null_change(views_db):
     )
     assert rows == [
         (dt.date(2026, 8, 1), 4, None, None, None),
-        (dt.date(2026, 9, 1), 6, 4, 2, 50.0),
+        (dt.date(2026, 9, 1), 6, 4, 2, Decimal("50.0")),
     ]
 
 
@@ -221,8 +222,6 @@ def test_vw_day_hour_sums_to_fact_total(views_db):
 # ── vw_area_summary ──────────────────────────────────────────────────────
 
 def test_vw_area_summary_full(views_db):
-    import datetime as dt
-
     rows = query_rows(
         views_db,
         "SELECT community_area, community_area_name, crime_count, "
@@ -232,7 +231,7 @@ def test_vw_area_summary_full(views_db):
     )
     assert rows == [
         (
-            25,
+            22,
             "Logan Square",
             4,
             2,          # V-01, V-05
@@ -252,7 +251,7 @@ def test_vw_area_summary_full(views_db):
             dt.date(2026, 9, 10),
         ),
         (
-            77,
+            76,
             "O'Hare",
             1,          # V-04
             1,
