@@ -185,8 +185,10 @@ def test_fact_null_fks_for_unknown_values(loaded_db):
             WHERE f.crime_id IN ('LW-06', 'LW-08')
             """
         )
-        rows = dict(cur.fetchall())
-    assert rows == {"LW-06": (True, False), "LW-08": (False, True)}
+        rows = cur.fetchall()
+    # dict() revienta con filas de 3 columnas: se arma por comprensión
+    unk_flags = {crime_id: (unk_area, unk_type) for crime_id, unk_area, unk_type in rows}
+    assert unk_flags == {"LW-06": (True, False), "LW-08": (False, True)}
 
 
 def test_reload_is_idempotent(loaded_db):
