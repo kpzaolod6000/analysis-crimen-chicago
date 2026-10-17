@@ -26,6 +26,39 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 4 · Paso 1 — Vistas analíticas (analytics.sql)
+
+**Qué:** `database/views/analytics.sql` (nuevo) con las 5 vistas del plan §6,
+todas en schema `warehouse` y alimentadas solo de `fact_crime` + dims:
+`vw_monthly_crimes` (mes, crimes, arrests, tasa ~round 1dp),
+`vw_area_crime_ranking` (RANK con empates + share_pct; áreas NULL fuera),
+`vw_month_over_month` (LAG: prev, delta absoluto y %; primer mes NULL),
+`vw_day_hour` (heatmap ISODOW x hour) y `vw_area_summary` (volumen,
+arrest/domestic, diversidad de tipos, rango de fechas). Target `views` en el
+`Makefile` (patrón migrate/seed) + 11 tests de integración
+(test_analytics_views.py) con fixture de 10 filas crudas (V-01..V-10:
+aug/sep 2026, áreas 25/41/77, 1 fila sin área) y resultados calculados a
+mano por vista.
+**Por qué:** primer ítem del Sprint 4. Las vistas centralizan el SQL
+analítico (la API las consume, no re-implementa; principio "PostgreSQL
+transforma"). Decisiones: sin ORDER BY salvo `vw_month_over_month`
+(el consumidor pagina/filtra), rates con `round(..., 1)`,
+`RANK()` estándar (empates → 1,1,3), y las filas con `community_area_key`
+NULL quedan fuera de ranking/summary pero si populares otros agregados
+(monthly, day_hour).
+**Archivos:**
+- `database/views/analytics.sql` — 5 vistas (nuevo)
+- `Makefile` — target `views` (nuevo) + `.PHONY` actualizado
+- `python/tests/integration/test_analytics_views.py` — 11 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest python/tests/integration` → 74 passed (63 + 11) · suite total →
+  111 passed (37 unit + 74 integration)
+- `ruff check python` → limpio
+**Cómo verificar:**
+- Checklist "Sprint 4 · Paso 1" en `docs/verification.md` (pytest, ruff,
+  `make views` en dev y queries de sanity con los 19.642 reales).
+
 ## [2026-10-17] Sprint 3 — Cierre del sprint (bump 0.3.0)
 
 **Qué:** Sprint 3 marcado `[x]` en `docs/plan.md` (con el Paso 4 — carga

@@ -449,3 +449,46 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git push -u origin feature/sprint3-load-warehouse
   # CI en Actions verde → merge --no-ff a develop
   ```
+
+---
+
+## Sprint 4 — SQL Analytics
+
+### Paso 1 — Vistas analíticas (analytics.sql) `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `database/views/analytics.sql` — 5 vistas en schema `warehouse`:
+    `vw_monthly_crimes` ( + arrests + rate), `vw_area_crime_ranking`
+    (RANK + share_pct), `vw_month_over_month` (LAG), `vw_day_hour`,
+    `vw_area_summary`
+  - `Makefile` — target `views` (loop sobre database/views/*.sql)
+  - `python/tests/integration/test_analytics_views.py` — 11 tests con
+    fixture de 10 filas raw (V-01..V-10) y resultados a mano
+- **Verificar contenido:**
+  - `docker compose -f docker-compose.test.yml up -d` (si no está levantada)
+  - `pytest python/tests/integration -v` → 74 passed (63 + 11)
+  - `pytest python/tests -q` → 111 passed (37 unit + 74 integration)
+  - `ruff check python` → All checks passed
+- **Verificar en dev (con los 19.642 reales; la estrella del warehouse ya
+  está poblada, las vistas se crean encima):**
+  ```powershell
+  make views     # PowerShell sin make: docker compose exec -T postgres psql -U postgres -d chicago_crimes -f /database/views/analytics.sql
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT * FROM warehouse.vw_monthly_crimes ORDER BY month_date;"
+  # → tendencia mensual del año cargado (sept-2026: 19.642, arrests y rate reales)
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT * FROM warehouse.vw_month_over_month;"
+  # → primera (única) fila con prev/change NULL
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT * FROM warehouse.vw_area_crime_ranking ORDER BY crime_rank LIMIT 10;"
+  # → Logan Square / O'Hare / Hyde Park...
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT * FROM warehouse.vw_day_hour ORDER BY day_of_week, hour LIMIT 20;"
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT * FROM warehouse.vw_area_summary ORDER BY crime_count DESC LIMIT 10;"
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "\dv warehouse.*"
+  # → 5 vistas (idempotencia: re-aplicar analytics.sql → CREATE VIEW x5)
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint4-analytics-views develop
+  git add database/ Makefile python/ docs/
+  git commit -m "feat: analytical views with window functions"
+  git push -u origin feature/sprint4-analytics-views
+  # CI en verde (checklist §10.3) → merge --no-ff a develop
+  ```
