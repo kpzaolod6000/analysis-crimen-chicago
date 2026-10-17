@@ -26,6 +26,84 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 4 — Cierre del sprint (bump 0.4.0)
+
+**Qué:** Sprint 4 marcado `[x]` en `docs/plan.md` (Paso 1 = única unidad del
+sprint: vistas + tests) y estado del README actualizado (Sprint 4 hecho,
+próximo Sprint 5). Verificación en dev quedó ejecutada por el usuario:
+`vw_monthly_crimes` con los 19.642 reales (sept-2026 vía rate real),
+ranking con nombres reales, MoM con prev NULL (única fila del mes) y
+`\dv` las 5 vistas.
+**Por qué:** cierre de sprint según git-workflow §5. Con esto el branching
+MVP (charlas tarea de plan §10) queda: Socrata → n8n → PostgreSQL → vistas
+analíticas → (siguiente: Python/EDA + FastAPI + D3).
+**Archivos:**
+- `docs/plan.md` — Sprint 4 `[x]`
+- `README.md` — §Estado
+- `docs/changelog.md`, `docs/verification.md` — registro y nota
+**Tests:**
+- Suite 100 passed (fixture tests + vistas incluidas); sanity en dev
+  verificado por el usuario (checklist del Paso 1).
+**Cómo verificar:**
+- `docs/plan.md` muestra Sprint 4 `[x]`; tras el release: `git tag -l`
+  lista `v0.4.0` y main/develop comparten el merge `--no-ff` del release.
+
+## [2026-10-17] Sprint 4 · Paso 1 — Vistas analíticas (analytics.sql)
+
+**Qué:** `database/views/analytics.sql` (nuevo) con las 5 vistas del plan §6,
+todas en schema `warehouse` y alimentadas solo de `fact_crime` + dims:
+`vw_monthly_crimes` (mes, crimes, arrests, tasa ~round 1dp),
+`vw_area_crime_ranking` (RANK con empates + share_pct; áreas NULL fuera),
+`vw_month_over_month` (LAG: prev, delta absoluto y %; primer mes NULL),
+`vw_day_hour` (heatmap ISODOW x hour) y `vw_area_summary` (volumen,
+arrest/domestic, diversidad de tipos, rango de fechas). Target `views` en el
+`Makefile` (patrón migrate/seed) + 11 tests de integración
+(test_analytics_views.py) con fixture de 10 filas crudas (V-01..V-10:
+aug/sep 2026, áreas 25/41/77, 1 fila sin área) y resultados calculados a
+mano por vista.
+**Por qué:** primer ítem del Sprint 4. Las vistas centralizan el SQL
+analítico (la API las consume, no re-implementa; principio "PostgreSQL
+transforma"). Decisiones: sin ORDER BY salvo `vw_month_over_month`
+(el consumidor pagina/filtra), rates con `round(..., 1)`,
+`RANK()` estándar (empates → 1,1,3), y las filas con `community_area_key`
+NULL quedan fuera de ranking/summary pero si populares otros agregados
+(monthly, day_hour).
+**Archivos:**
+- `database/views/analytics.sql` — 5 vistas (nuevo)
+- `Makefile` — target `views` (nuevo) + `.PHONY` actualizado
+- `python/tests/integration/test_analytics_views.py` — 11 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest python/tests/integration` → 74 passed (63 + 11) · suite total →
+  111 passed (37 unit + 74 integration)
+- `ruff check python` → limpio
+**Cómo verificar:**
+- Checklist "Sprint 4 · Paso 1" en `docs/verification.md` (pytest, ruff,
+  `make views` en dev y queries de sanity con los 19.642 reales).
+
+## [2026-10-17] Sprint 3 — Cierre del sprint (bump 0.3.0)
+
+**Qué:** Sprint 3 marcado `[x]` en `docs/plan.md` (con el Paso 4 — carga
+staging → warehouse — como ítem nuevo del checklist) y estado del README
+actualizado (Sprint 3 hecho, próximo Sprint 4). La carga quedó ejecutada en
+dev: 19.642 filas en `fact_crime` == staging con fecha, dims a NOTICEs
+(10.957 dim_date · 254 crime_type · 15.350 location · 24 district · 77
+community_area).
+**Por qué:** cierre de sprint según git-workflow §5. El modelo dimensional
+está poblado e idempotente; con el fix previo del contrato `''→NULL` la
+regla quedó implementada y testeada de verdad.
+**Archivos:**
+- `docs/plan.md` — Sprint 3 `[x]` (con Paso 4 agregado al checklist)
+- `README.md` — §Estado
+- `docs/changelog.md`, `docs/verification.md` — esta entrada y nota
+**Tests:**
+- Verificar contenido (lo ejecutás vos): `pytest python/tests -q` → 100
+  passed · `ruff check python` → All checks passed · sanity + idempotencia
+  del checklist del Paso 4.
+**Cómo verificar:**
+- `docs/plan.md` muestra Sprint 3 `[x]`; tras el release: `git tag -l`
+  lista `v0.3.0` y el log muestra el merge `--no-ff` del release en ambas.
+
 ## [2026-10-16] Sprint 3 · Paso 4 — Carga staging → warehouse (load_warehouse.sql)
 
 **Qué:** `database/functions/load_warehouse.sql` (nuevo): 6 funciones SQL

@@ -216,19 +216,26 @@ Cada sprint incluye sus tests (ver [docs/testing.md](testing.md)).
 - [x] Tests de calidad de datos (unicidad, rangos, nulos)
 - Resultado: **Socrata → n8n → raw.crimes automático** (primera meta real).
 
-### Sprint 3 — Data Warehouse `[ ]`
-- [ ] `003_staging.sql` (limpieza/tipos), `004_dims_fact.sql`
+### Sprint 3 — Data Warehouse `[x]`
+- [x] `003_staging.sql` (limpieza/tipos), `004_dims_fact.sql`
       (la numeración `002` la ocupa `002_operational.sql` del Sprint 2)
-- [ ] Seed: community areas (77) del dataset tabular `igwz-8jzy`
+- [x] Seed: community areas (77) del dataset tabular `igwz-8jzy`
       (`cauq-8yn6`, el de la ref. original, es solo su vista de mapa)
-- [ ] Tests de integración: integridad referencial fact↔dims, conteos
-- Resultado: modelo dimensional poblado desde raw.
+- [x] Carga staging → warehouse: `database/functions/load_warehouse.sql`
+      (6 funciones idempotentes + orquestador `load_warehouse()`; Makefile
+      `load-warehouse`)
+- [x] Tests de integración: integridad referencial fact↔dims, conteos
+- Resultado: modelo dimensional poblado desde raw (19.642 filas en dev;
+  release `v0.3.0`).
 
-### Sprint 4 — SQL Analytics `[ ]`
-- [ ] Vistas: `vw_monthly_crimes`, `vw_area_crime_ranking`,
+### Sprint 4 — SQL Analytics `[x]`
+- [x] Vistas: `vw_monthly_crimes`, `vw_area_crime_ranking`,
       `vw_month_over_month`, `vw_day_hour`, `vw_area_summary`
-- [ ] Tests: resultados de vistas contra fixtures conocidos
-- Resultado: SQL analítico con window functions verificado.
+      (`database/views/analytics.sql`, target `views` en el Makefile)
+- [x] Tests: resultados de vistas contra fixtures conocidos
+      (11 tests, fixture V-01..V-10 con 1 fila sin área)
+- Resultado: SQL analítico con window functions verificado (staging →
+  warehouse → vistas lista para consumir desde la API; release `v0.4.0`).
 
 ### Sprint 5 — Python EDA + ML Nivel 1 `[ ]`
 - [ ] Notebooks 01–05 (data quality → hotspots)
