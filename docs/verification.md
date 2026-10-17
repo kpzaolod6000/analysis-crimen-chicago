@@ -492,3 +492,46 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git push -u origin feature/sprint4-analytics-views
   # CI en verde (checklist §10.3) → merge --no-ff a develop
   ```
+
+### Fix — Suite de vistas en CI (Decimal, view list, áreas reales, dict) `[ ]` (pendiente de tu verificación)
+
+- **Qué pasó:** primer push/merge del Paso 1 fue con Actions rojo (6
+  failures): catalog equivocado para views, Decimal vs float, nombres de
+  área inventados (25/77 vs 22/76 reales),filtro BASE TABLE faltante en un
+  test del Paso 2 y un bug dict() en un test del Paso 4.
+- **Objetos revisables:**
+  - `python/tests/integration/test_analytics_views.py` — catalog
+    `information_schema.tables` (VIEW), Decimals, fixture con áreas
+    22/41/76 (Logan Square/Hyde Park/O'Hare alineados al seed real)
+  - `python/tests/integration/test_dims_fact_schema.py` — filtro
+    `table_type = 'BASE TABLE'` en test_warehouse_tables_exist
+  - `python/tests/integration/test_warehouse_load.py` — dict comprehension
+    para 3 columnas en test_fact_null_fks_for_unknown_values
+- **Verificar contenido:**
+  - `pytest python/tests -q` → 111 passed (37 unit + 74 integration)
+  - `ruff check python` → All checks passed
+- **Verificar en CI:** el run del push de esta rama en Actions debe estar
+  VERDE antes de mergear (regla §10.3 — la misma que se violó al merge
+  del Paso 1 y que causó este fix).
+- **Lección doble:** (1) fixtures de nombres/datos = del seed real, no de
+  memoria; (2) ningún merge con CI rojo, cuya violación originó este hotfix
+  (la primera fue el Fix 2 del seed — repetirá si la lista).
+- **Git:**
+  ```powershell
+  git switch -c fix/sprint4-view-tests develop
+  git add python/tests/integration/test_analytics_views.py python/tests/integration/test_dims_fact_schema.py python/tests/integration/test_warehouse_load.py
+  git commit -m "fix: stabilize view test suite for CI (Decimal, catalog, areas, dict)"
+  git push -u origin fix/sprint4-view-tests
+  # CI VERDE → merge --no-ff a develop
+  ```
+  Y en un commit aparte (luego del merge del fix), los docs de cierre que
+  ya están en el arbol:
+  ```powershell
+  git switch -c feature/docs-sprint4-cierre develop
+  git add docs/plan.md README.md docs/changelog.md docs/verification.md
+  git commit -m "docs: close sprint 4 (analytical views, bump 0.4.0)"
+  git push -u origin feature/docs-sprint4-cierre
+  # CI verde → merge --no-ff a develop → luego release-0.4.0 (§9)
+  # (ese commit lleva el registro del fix + el cierre: mensaje sugerido
+  # "docs: record view-test fix and close sprint 4 (bump 0.4.0)")
+  ```
