@@ -405,7 +405,15 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # CI en verde (¡es el fix que lo devuelve!) → merge --no-ff a develop
   ```
 
-### Paso 4 — Carga staging → warehouse `[ ]` (pendiente de tu verificación)
+### Paso 4 — Carga staging → warehouse `[x]` (carga ejecutada en dev; falta tu pytest/ruff/sanity final)
+
+- ✅ **Verificado el 2026-10-17 (carga, por el asistente):** funciones
+  aplicadas (6× CREATE FUNCTION) y `SELECT warehouse.load_warehouse()`
+  ejecutado en dev tras migrar Docker a D: → NOTICEs: dim_date 10.957 ·
+  dim_crime_type 254 · dim_location 15.350 · dim_district 24 ·
+  fact_crime 19.642 (total 46.227). fact == staging con fecha (19.642).
+  Nota: un reinicio de postgres a mitad de la 1ª ejecución hizo rollback
+  limpio (todo o nada); la re-ejecución idempotente terminó completa.
 
 - **Objetos revisables:**
   - `database/functions/load_warehouse.sql` — 6 funciones idempotentes

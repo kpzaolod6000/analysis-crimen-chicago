@@ -26,6 +26,29 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 3 — Cierre del sprint (bump 0.3.0)
+
+**Qué:** Sprint 3 marcado `[x]` en `docs/plan.md` (con el Paso 4 — carga
+staging → warehouse — como ítem nuevo del checklist) y estado del README
+actualizado (Sprint 3 hecho, próximo Sprint 4). La carga quedó ejecutada en
+dev: 19.642 filas en `fact_crime` == staging con fecha, dims a NOTICEs
+(10.957 dim_date · 254 crime_type · 15.350 location · 24 district · 77
+community_area).
+**Por qué:** cierre de sprint según git-workflow §5. El modelo dimensional
+está poblado e idempotente; con el fix previo del contrato `''→NULL` la
+regla quedó implementada y testeada de verdad.
+**Archivos:**
+- `docs/plan.md` — Sprint 3 `[x]` (con Paso 4 agregado al checklist)
+- `README.md` — §Estado
+- `docs/changelog.md`, `docs/verification.md` — esta entrada y nota
+**Tests:**
+- Verificar contenido (lo ejecutás vos): `pytest python/tests -q` → 100
+  passed · `ruff check python` → All checks passed · sanity + idempotencia
+  del checklist del Paso 4.
+**Cómo verificar:**
+- `docs/plan.md` muestra Sprint 3 `[x]`; tras el release: `git tag -l`
+  lista `v0.3.0` y el log muestra el merge `--no-ff` del release en ambas.
+
 ## [2026-10-16] Sprint 3 · Paso 4 — Carga staging → warehouse (load_warehouse.sql)
 
 **Qué:** `database/functions/load_warehouse.sql` (nuevo): 6 funciones SQL
