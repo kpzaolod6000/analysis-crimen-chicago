@@ -26,6 +26,44 @@ Reglas:
 
 ---
 
+## [2026-10-16] Sprint 3 · Paso 4 — Carga staging → warehouse (load_warehouse.sql)
+
+**Qué:** `database/functions/load_warehouse.sql` (nuevo): 6 funciones SQL
+idempotentes — `load_dim_date(start, end)` (calendario 2001-2030 con
+`generate_series` + CASE fijos para month/day_name, determinista), 3 cargas
+de dims (`dim_crime_type`, `dim_location`, `dim_district`) con
+`SELECT DISTINCT` + `ON CONFLICT DO NOTHING`, `load_fact_crime()` con LEFT
+JOINs `IS NOT DISTINCT FROM` para resolver las keys surrogadas y
+`ON CONFLICT (crime_id) DO UPDATE` (re-cargas aplican correcciones de
+Socrata), y el orquestador `load_warehouse()` (orden calendario → dims →
+fact, con NOTICE por paso). Target `load-warehouse` en el `Makefile`
+(aplica funciones + ejecuta el orquestador). 10 tests de integración
+(test_warehouse_load.py) con 8 filas fixture: dim_date completa y sus
+atributos, dims dedupeadas (6/7/6), fact excluye filas sin date (7 de 8),
+resolución completa de keys vía joins (LW-01 → Austin/THEFT/hour 10),
+FKs NULL para unknown (LW-06 área 0, LW-08 primary_type vacío, probando el
+contrato del fix) y recarga idempotente (7/6/7/6 estables).
+**Por qué:** cierre del modelo dimensional poblado (result del Sprint 3):
+la estrella deja de estar vacía. n8n orquesta, PostgreSQL transforma: la
+carga es SQL puro re-ejecutable. `IS NOT DISTINCT FROM` en los joins de
+dims maneja NULLs de iucr/block sin perder matches. `dim_community_area`
+NO se carga desde staging: su fuente es el seed con los nombres oficiales
+(Paso 3). Dos bugs míos corregidos antes de entregar: texto corrupto en el
+último test, y orden del fixture (sembraba las 77 areas ANTES del
+TRUNCATE, que las borraba).
+**Archivos:**
+- `database/functions/load_warehouse.sql` — 6 funciones (nuevo)
+- `Makefile` — target `load-warehouse` (nuevo) + .PHONY
+- `python/tests/integration/test_warehouse_load.py` — 10 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `python/tests/integration` → 63 passed (53 + 10) · suite total → 100 passed
+- `ruff check python` → limpio
+**Cómo verificar:**
+- Checklist del Paso 4 en `docs/verification.md` (pytest, ruff, cargar la
+  estrella en dev con el año real y queries de sanity: fact == staging
+  con fechas, aliases de nombres vía joins).
+
 ## [2026-10-16] Sprint 3 · Fix 1 — Contrato ''→NULL en staging (declarado pero no implementado)
 
 **Qué:** `003_staging.sql` ahora envuelve los 7 campos de texto en
