@@ -26,6 +26,32 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 5 · Paso 3 — Notebook 03_spatial_distribution
+
+**Qué:** `python/notebooks/03_spatial_distribution.ipynb` (11 celdas): dónde
+ocurre el crimen — ranking por community area (`vw_area_crime_ranking`, top
+15 con share), arresto/doméstico por área (`vw_area_summary` con tasas
+calculadas en SQL), nube de coordenadas lat/lon desde `staging.crimes`
+(coloreada por arresto) y heatmap tipo×área (CTE top 6 tipos × top 12 áreas,
+pivoteado a matriz). Reutiliza el helper `q()` con conversión Decimal→float.
+**Por qué:** tercer paso del Sprint 5 y antesala del DBSCAN (Paso 5): el
+notebook explora la señal espacial que después clusterizará. Mantiene el
+principio "PostgreSQL agrega, Python presenta": ranking y resumen por área
+salen de las vistas del Sprint 4; solo coordenadas y cross-tab consultan
+staging directo.
+**Archivos:**
+- `python/notebooks/03_spatial_distribution.ipynb` — notebook (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite (notebook analítico). Las 5 celdas de código se ejecutaron
+  headless (Agg) contra dev antes de entregar, sin error: ranking (Austin 927,
+  Near North Side 871…), tasas por área, scatter (19.552/19.642 = 99.5% con
+  coords), heatmap tipo×área (Near North THEFT 362, Austin BATTERY 219).
+  Suite sigue en 111 passed.
+**Cómo verificar:**
+- Checklist "Sprint 5 · Paso 3" en `docs/verification.md` (Run All del
+  notebook y revisión de los 4 gráficos).
+
 ## [2026-10-17] Sprint 5 · Paso 2 — Notebook 02_temporal_trends
 
 **Qué:** `python/notebooks/02_temporal_trends.ipynb` (15 celdas): patrones
