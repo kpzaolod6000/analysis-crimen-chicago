@@ -26,6 +26,28 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 5 · Fix 2 — ruff.toml: notebooks fuera del lint
+
+**Qué:** nuevo `ruff.toml` en la raíz con `exclude = ["*.ipynb"]`. Al sumar
+notebooks (Paso 1) ruff pasó a lintearlos (8 findings: F401 falso por
+import usado en otra celda — ruff scopea por celda —, RUF100 de un
+`noqa: E402` heredado del template, imports muertos en nb02 y C408/I001 de
+estilo).
+**Por qué:** los notebooks son artefactos exploratorios (testing.md: no se
+testean; se validan ejecutándolos, práctica ya aplicada en los 3 pasos).
+Lintearlos pelearía con el linter en cada edición de celda del usuario y
+los F401 cross-celda son falsos positivos estructurales. El código de
+producción sigue linteado completo (decisión tomada con el usuario: opción
+"excluir").
+**Archivos:**
+- `ruff.toml` — config del linter (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro
+**Tests:**
+- `ruff check python` → All checks passed (8 findings → 0)
+- `pytest python/tests -q` → 111 passed (sin cambios)
+**Cómo verificar:**
+- Checklist "Fix 2" del Sprint 5 en `docs/verification.md`.
+
 ## [2026-10-17] Sprint 5 · Paso 3 — Notebook 03_spatial_distribution
 
 **Qué:** `python/notebooks/03_spatial_distribution.ipynb` (11 celdas): dónde

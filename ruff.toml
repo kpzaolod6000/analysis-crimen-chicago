@@ -1,0 +1,10 @@
+# ruff.toml — config del linter (raíz del repo, Sprint 5).
+#
+# ruff linta Jupyter notebooks (.ipynb) por defecto; se excluyen:
+# son artefactos exploratorios (docs/testing.md: los notebooks no se
+# testean), se validan ejecutándolos — no linteándolos — y ruff además
+# scopea por celda, lo que genera F401 falsos en imports usados en otra
+# celda. El código de producción (src/, scripts/, api/, tests) sigue
+# linteado por completo.
+
+exclude = ["*.ipynb"]

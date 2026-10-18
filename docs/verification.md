@@ -617,3 +617,17 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git push -u origin feature/sprint5-nb03-spatial
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
+
+### Fix 2 — ruff.toml: notebooks fuera del lint `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `ruff.toml` (raíz) — `exclude = ["*.ipynb"]`; razón en el header
+- **Verificar contenido:**
+  - `ruff check python` → All checks passed (antes: 8 findings de notebooks)
+  - `pytest python/tests -q` → 111 passed
+- **Git:**
+  ```powershell
+  # puede viajar en la MISMA rama/PR del Paso 3 o como commit propio
+  git add ruff.toml docs/
+  git commit -m "chore: exclude notebooks from ruff lint (ruff.toml)"
+  ```
