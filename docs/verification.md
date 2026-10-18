@@ -560,7 +560,7 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   Esperado: 19.642 filas · ventana sept-2026 · quality_report en 0
   advertencias.
 
-### Paso 2 — Notebook 02_temporal_trends `[ ]` (pendiente de tu verificación)
+### Paso 2 — Notebook 02_temporal_trends `[x]` (merged en develop)
 
 - **Objetos revisables:**
   - `python/notebooks/02_temporal_trends.ipynb` — 15 celdas: consume las
@@ -587,5 +587,33 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git add python/notebooks/02_temporal_trends.ipynb docs/
   git commit -m "feat: notebook 02 temporal trends over sprint 4 views"
   git push -u origin feature/sprint5-nb02-temporal
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 3 — Notebook 03_spatial_distribution `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `python/notebooks/03_spatial_distribution.ipynb` — 11 celdas: ranking
+    por área (`vw_area_crime_ranking`), arresto/doméstico por área
+    (`vw_area_summary`), nube lat/lon (staging), heatmap tipo×área (CTE).
+- **Verificar contenido:**
+  - `pytest python/tests -q` → 111 passed (suite sin cambios)
+  - `ruff check python` → All checks passed
+  - Las 5 celdas de código ya se ejecutaron headless contra dev (asistente),
+    sin error: scatter 19.552/19.642 (99.5%) con coords.
+- **Verificar (tu parte):**
+  ```powershell
+  # VS Code → python/notebooks/03_spatial_distribution.ipynb → kernel
+  # "Python (chicago-crimes)" → Run All
+  ```
+  Esperado: top áreas Austin/Near North Side/Near West Side… · gráfico de
+  tasas arresto/doméstico · nube de puntos con forma de Chicago (color por
+  arresto) · heatmap tipo×área (THEFT domina Loop/Near North).
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint5-nb03-spatial develop
+  git add python/notebooks/03_spatial_distribution.ipynb docs/
+  git commit -m "feat: notebook 03 spatial distribution by area and coords"
+  git push -u origin feature/sprint5-nb03-spatial
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
