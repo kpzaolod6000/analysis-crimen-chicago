@@ -26,6 +26,29 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 5 · Paso 5 (parte 2) — Notebook 04_dbscan_hotspots
+
+**Qué:** `python/notebooks/04_dbscan_hotspots.ipynb` (16 celdas): explora el
+grid eps (150/200/300/500 m) × min_samples (10/25/50) sobre los 19.552
+puntos reales (tabla con clusters/ruido%/tamaños), corre los parámetros
+elegidos (200 m / 25 → 51 clusters, 81% ruido, escala de cuadra), visualiza
+la nube coloreada por cluster (ruido gris, tab20), muestra el resumen
+(centroide/bbox) y guarda la corrida en dev vía `dbscan.save_run`
+(hotspot_runs + hotspot_clusters, con queries de verificación).
+**Por qué:** segunda mitad del bloque DBSCAN. Los defaults salieron del
+grid medido (no elegidos a ojo): 500/10 = mega-bola (18.700 pts), 150/10 =
+291 micro-clusters; 200/25 equilibra distinción y tamaño interpretable. El
+guardado es append-only (Run All crea corrida nueva, comparable).
+**Archivos:**
+- `python/notebooks/04_dbscan_hotspots.ipynb` — notebook (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite (notebook analítico). Las 6 celdas computacionales se
+  ejecutaron headless contra dev (grid incluido); las 2 de persistencia
+  quedan para el Run All del usuario (escriben en dev). Suite 142 passed.
+**Cómo verificar:**
+- Checklist "Paso 5 parte 2" en `docs/verification.md`.
+
 ## [2026-10-17] Sprint 5 · Paso 5 (parte 1) — Persistencia de hotspots DBSCAN
 
 **Qué:** (a) migración `005_hotspot_clusters.sql`: `warehouse.hotspot_runs`

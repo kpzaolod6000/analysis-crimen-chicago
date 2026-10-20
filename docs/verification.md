@@ -672,6 +672,37 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
 
+### Paso 5 parte 2 — Notebook 04_dbscan_hotspots `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `python/notebooks/04_dbscan_hotspots.ipynb` — grid eps×min_samples +
+    visualización + guardado de la corrida elegida en dev
+- **Verificar contenido:**
+  - `pytest python/tests -q` → 142 passed (suite sin cambios)
+  - `ruff check python` → All checks passed
+  - Las 6 celdas computacionales ya se ejecutaron headless contra dev
+    (asistente): 19.552 puntos, grid 200/25 → 51 clusters / 81% ruido.
+- **Verificar (tu parte):**
+  ```powershell
+  # VS Code → 04_dbscan_hotspots.ipynb → kernel "chicago-crimes" → Run All
+  ```
+  Esperado: grid con 12 combos (200/25 = 51 clusters) · scatter con
+  clusters coloreados sobre ruido gris · corrida guardada: el notebook
+  imprime un `run_key` y las queries muestran los clusters de esa corrida.
+  Sanity post-run en psql:
+  ```powershell
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT run_key, eps, min_samples, n_clusters, n_noise FROM warehouse.hotspot_runs ORDER BY run_key;"
+  # cada Run All agrega una corrida (append-only); con la primera correrá 1 fila
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint5-nb04-dbscan develop
+  git add python/notebooks/04_dbscan_hotspots.ipynb docs/
+  git commit -m "feat: notebook 04 dbscan hotspot exploration and persistence"
+  git push -u origin feature/sprint5-nb04-dbscan
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
 ### Fix 2 — ruff.toml: notebooks fuera del lint `[ ]` (pendiente de tu verificación)
 
 - **Objetos revisables:**
