@@ -645,6 +645,33 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
 
+### Paso 5 — DBSCAN: DDL + src/models + tests `[ ]` (parte 1; notebook 04 va aparte)
+
+- **Objetos revisables:**
+  - `database/migrations/005_hotspot_clusters.sql` — hotspot_runs +
+    hotspot_clusters (append-only por corrida; ruido en n_noise)
+  - `python/src/models/dbscan.py` — fit / cluster_summaries / save_run
+  - `python/tests/unit/test_dbscan.py` — 7 tests
+  - `python/tests/integration/test_hotspot_clusters.py` — 6 tests
+  - `python/tests/integration/test_dims_fact_schema.py` — set → subset
+- **Verificar contenido:**
+  - `docker compose -f docker-compose.test.yml up -d` (si no está levantada)
+  - `pytest python/tests -q` → 142 passed (58 unit + 84 integration)
+  - `ruff check python` → All checks passed
+- **Verificar en dev (aplicar 005 y probar save_run con datos reales):**
+  ```powershell
+  docker compose exec postgres psql -U postgres -d chicago_crimes -f /database/migrations/005_hotspot_clusters.sql
+  # (la corrida real con los 19.552 puntos llega con el notebook 04, parte 2)
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint5-dbscan-model develop
+  git add database/ python/ docs/
+  git commit -m "feat: dbscan hotspot model with atomic persistence"
+  git push -u origin feature/sprint5-dbscan-model
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
 ### Fix 2 — ruff.toml: notebooks fuera del lint `[ ]` (pendiente de tu verificación)
 
 - **Objetos revisables:**

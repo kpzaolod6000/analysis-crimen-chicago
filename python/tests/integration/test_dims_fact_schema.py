@@ -84,7 +84,10 @@ def test_warehouse_tables_exist(dims_db):
         actual = {row[0] for row in cur.fetchall()}
     # filtro BASE TABLE: el schema también contiene views analíticas
     # (Sprint 4, database/views/analytics.sql) que no son tablas
-    assert actual == WAREHOUSE_TABLES
+    # subset y no set exacto: 005_hotspot_clusters.sql (Sprint 5) agrega
+    # hotspot_runs/hotspot_clusters al mismo schema; en CI (DB fresca) ese
+    # módulo corre después de este
+    assert WAREHOUSE_TABLES <= actual
 
 
 def test_fact_crime_columns(dims_db):
