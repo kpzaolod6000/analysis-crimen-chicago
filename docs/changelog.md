@@ -26,6 +26,47 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 5 · Paso 5 (parte 1) — Persistencia de hotspots DBSCAN
+
+**Qué:** (a) migración `005_hotspot_clusters.sql`: `warehouse.hotspot_runs`
+(una corrida: eps, min_samples, computed_at, n_clusters, n_noise) +
+`warehouse.hotspot_clusters` (un cluster: centroide, bbox, n_points,
+UNIQUE (run_key, cluster_label), CHECK label >= 0 — el ruido -1 NO se
+guarda como cluster, queda en n_noise). (b) `python/src/models/dbscan.py`
+(paquete models nuevo): `fit` (sklearn DBSCAN sobre lat/lon con métrica
+**haversine**: eps en METROS reales, coordenadas → radianes, ball_tree;
+el euclídeo en grados distorsiona E-O por cos(lat) ≈ 0.745 en Chicago),
+`cluster_summaries` (centroide/bbox/volumen por cluster, orden volumen
+DESC) y `save_run` (persistencia atómica: transaction explícita con
+rollback/restore de autocommit; append-only por corrida). (c) 7 tests
+unit (test_dbscan.py: 2 tríos sintéticos + outlier, labels/centroides/bbox,
+empty inputs) + 6 de integración (test_hotspot_clusters.py: DDL, save_run,
+append de corridas, corrida all-noise con 0 clusters, CHECK del DDL como
+defensa). Dos correcciones de aserción propias en el camino: ruff SIM117
+nested-with y el test de tabs del Paso 2 (set exacto → subset, porque
+005 agrega tablas al mismo schema y en CI corre después).
+**Por qué:** primer ítem del bloque DBSCAN del plan (§8 Nivel 1). Haversine
+elegida a propuesta del usuario (material de DBSCAN: la métrica debe
+reflejar similitud real): con lat/lon, euclídeo en grados subestima
+distancias E-O (cos 41.88 ≈ 0.745) y eps deja de ser interpretable;
+haversine hace eps = metros reales. La separación runs/clusters guarda la
+PROVENIENCIA (con qué eps/min_samples salió cada hotspot; re-correr con
+otros parámetros no pisa la corrida anterior — comparación de parámetros
+para el dashboard Sprint 10).
+**Archivos:**
+- `database/migrations/005_hotspot_clusters.sql` — DDL (nuevo)
+- `python/src/models/__init__.py` + `dbscan.py` — módulo (nuevo)
+- `python/tests/unit/test_dbscan.py` — 7 tests (nuevo)
+- `python/tests/integration/test_hotspot_clusters.py` — 6 tests (nuevo)
+- `python/tests/integration/test_dims_fact_schema.py` — set → subset
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest python/tests -q` → 142 passed (58 unit + 84 integration)
+- `ruff check python` → All checks passed
+**Cómo verificar:**
+- Checklist "Sprint 5 · Paso 5" en `docs/verification.md` (pytest, ruff,
+  sanity opcional con los 19.642 reales).
+
 ## [2026-10-17] Sprint 5 · Paso 4 — src/features/weekly.py (features semanales con lags)
 
 **Qué:** primer código de producción del Sprint 5: `python/src/features/`
