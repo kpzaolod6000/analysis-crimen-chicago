@@ -26,6 +26,37 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 5 · Paso 4 — src/features/weekly.py (features semanales con lags)
+
+**Qué:** primer código de producción del Sprint 5: `python/src/features/`
+(paquete nuevo) con `weekly.py` — transformaciones puras de pandas: 
+`week_start` (lunes ISO de cada fecha), `weekly_counts` (eventos → grilla
+semanal COMPLETA por área, zero-fill de semanas vacías), `hotspot_threshold`
+(percentil q de counts), `add_lags` (lag_1w/2w/4w/8w por área) y
+`build_features` (lags + lag_52w + targets `crime_count_next_week` y
+`hotspot_next_week` binario vs umbral q90). 18 tests unit
+(test_features_weekly.py) con fixture hand-computed: área 1 continua
+10→50, área 2 con huecos zero-filled (y un miércoles para probar la semana
+ISO), umbral q90 = 41.0, lags sin leaks entre áreas, NaN vs None cubiertos.
+**Por qué:** ítem central del plan §8 (features por community_area +
+semana, lags 1/2/4/8, misma semana año anterior). La grilla completa con
+zero-fill es la decisión clave: sin ella `shift()` de pandas es posicional
+y un hueco desalinearía todos los lags. El módulo NO toca la DB (los
+notebooks/API traen los eventos con SQL) — unit-testeable sin PostgreSQL
+y cumple "PostgreSQL transforma, Python calcula features".
+**Archivos:**
+- `python/src/features/__init__.py` — paquete (nuevo)
+- `python/src/features/weekly.py` — módulo (nuevo)
+- `python/tests/unit/test_features_weekly.py` — 18 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest python/tests/unit` → 55 passed (37 + 18) · suite total →
+  129 passed (55 unit + 74 integration)
+- `ruff check python` → All checks passed
+**Cómo verificar:**
+- Checklist "Sprint 5 · Paso 4" en `docs/verification.md` (pytest, ruff,
+  sanity opcional: build_features sobre los eventos reales de dev).
+
 ## [2026-10-17] Sprint 5 · Fix 2 — ruff.toml: notebooks fuera del lint
 
 **Qué:** nuevo `ruff.toml` en la raíz con `exclude = ["*.ipynb"]`. Al sumar

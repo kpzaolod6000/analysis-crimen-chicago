@@ -618,6 +618,33 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
 
+### Paso 4 — src/features/weekly.py + tests unit `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `python/src/features/__init__.py` + `weekly.py` — módulo puro pandas:
+    grilla semanal completa (zero-fill), lags 1/2/4/8/52 por área,
+    `crime_count_next_week` + `hotspot_next_week` (umbral q90)
+  - `python/tests/unit/test_features_weekly.py` — 18 tests hand-computed
+- **Verificar contenido:**
+  - `docker compose -f docker-compose.test.yml up -d` (si no está levantada)
+  - `pytest python/tests/unit -v` → 55 passed (37 + 18)
+  - `pytest python/tests -q` → 129 passed (55 unit + 74 integration)
+  - `ruff check python` → All checks passed
+- **Sanity opcional en dev** (el módulo es puro; este check consulta la DB):
+  ```powershell
+  .\.venv\Scripts\python.exe -c "import sys; sys.path.insert(0, r'python\src'); import psycopg2, pandas as pd; from features import weekly; conn = psycopg2.connect(host='localhost', port=5432, user='postgres', password='postgres', dbname='chicago_crimes'); cur = conn.cursor(); cur.execute('SELECT ca.community_area, d.full_date FROM warehouse.fact_crime f JOIN warehouse.dim_community_area ca ON ca.community_area_key=f.community_area_key JOIN warehouse.dim_date d ON d.date_key=f.date_key'); ev = pd.DataFrame(cur.fetchall(), columns=['community_area','full_date']); cur.close(); conn.close(); g = weekly.weekly_counts(ev); print(g.shape); print(g.head(8))"
+  # esperado: 77 áreas... no: solo las áreas CON eventos de sept (≈70+) × 5 semanas
+  # (sept-2026 arranca en la semana del lunes 2026-08-31)
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint5-features-weekly develop
+  git add python/src/features/ python/tests/unit/test_features_weekly.py docs/
+  git commit -m "feat: weekly features per community area with lags"
+  git push -u origin feature/sprint5-features-weekly
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
 ### Fix 2 — ruff.toml: notebooks fuera del lint `[ ]` (pendiente de tu verificación)
 
 - **Objetos revisables:**
