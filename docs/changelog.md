@@ -26,6 +26,34 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 6 · Paso 3 — Endpoint /api/crimes/hotspots
+
+**Qué:** endpoint `GET /api/crimes/hotspots` (routers/services/schemas):
+devuelve la corrida DBSCAN guardada (última por defecto, `run_key` opcional
+ge=1) + sus clusters ordenados por volumen DESC — `HotspotsResponse`
+(HotspotRun + list[HotspotCluster]) leyendo `warehouse.hotspot_runs`/
+`hotspot_clusters` (005). 404 con mensaje si no hay corridas. 4 tests
+(test_crimes_hotspots.py): 404 sin corridas (estado base de la fixture),
+última corrida sembrada a mano (2 clusters de 120/40 pts, campos y orden
+exactos), run_key explícito y run_key inexistente → 404. Fix propio en el
+camino: `computed_at` era `str` y llega como `datetime` → schema ahora
+`datetime` (FastAPI serializa ISO).
+**Por qué:** cierra la cadena del Sprint 5 (clusters guardados) hacia el
+dashboard: el panel de hotspots consumirá este endpoint. `run_key` opcional
+habilita comparar corridas (proveniencia del Paso 5).
+**Archivos:**
+- `api/app/schemas/crimes.py` — HotspotRun / HotspotCluster / HotspotsResponse
+- `api/app/services/crimes.py` — hotspots()
+- `api/app/routers/crimes.py` — endpoint /hotspots
+- `api/tests/test_crimes_hotspots.py` — 4 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest api/tests -q` → 13 passed (9 + 4) · `pytest python/tests -q` →
+  142 passed · `ruff check python api` → All checks passed
+**Cómo verificar:**
+- Checklist "Sprint 6 · Paso 3" en `docs/verification.md` (pytest, ruff,
+  smoke: /api/crimes/hotspots con tu corrida real del notebook 04).
+
 ## [2026-10-17] Sprint 6 · Paso 2 — Endpoints analíticos (trends / by-type / by-community-area)
 
 **Qué:** 3 endpoints nuevos en `routers/crimes.py` + sus services y schemas:

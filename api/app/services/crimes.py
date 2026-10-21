@@ -102,6 +102,57 @@ def area_ranking(conn, limit: int | None = None) -> list[dict]:
     return [dict(zip(keys, row)) for row in rows]
 
 
+def hotspots(conn, run_key: int | None = None) -> dict | None:
+    """Corrida DBSCAN guardada + sus clusters.
+
+    Por defecto la última corrida (run_key DESC); con run_key, esa en
+    concreto. None si no hay corridas guardadas (el router responde 404).
+    Los clusters salen ordenados por volumen DESC (el hotspot más denso
+    primero), mismo criterio que models.dbscan.cluster_summaries.
+    """
+    cur = conn.cursor()
+    run_sql = """
+        SELECT run_key, eps, min_samples, computed_at, n_clusters, n_noise
+        FROM warehouse.hotspot_runs
+    """
+    if run_key is not None:
+        run_sql += " WHERE run_key = %s"
+    else:
+        run_sql += " ORDER BY run_key DESC LIMIT 1"
+    cur.execute(run_sql, (run_key,) if run_key is not None else None)
+    run = cur.fetchone()
+    if run is None:
+        cur.close()
+        return None
+    cur.execute(
+        """
+        SELECT cluster_label, centroid_lat, centroid_lon, n_points,
+               min_lat, max_lat, min_lon, max_lon
+        FROM warehouse.hotspot_clusters
+        WHERE run_key = %s
+        ORDER BY n_points DESC
+        """,
+        (run[0],),
+    )
+    clusters = [
+        dict(zip(
+            ["cluster_label", "centroid_lat", "centroid_lon", "n_points",
+             "min_lat", "max_lat", "min_lon", "max_lon"],
+            row,
+        ))
+        for row in cur.fetchall()
+    ]
+    cur.close()
+    return {
+        "run": dict(zip(
+            ["run_key", "eps", "min_samples", "computed_at",
+             "n_clusters", "n_noise"],
+            run,
+        )),
+        "clusters": clusters,
+    }
+
+
 def database_ok(conn) -> bool:
     cur = conn.cursor()
     cur.execute("SELECT 1")

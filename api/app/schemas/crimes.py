@@ -1,6 +1,6 @@
 """Pydantic schemas for the crimes endpoints."""
 
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel
 
@@ -37,6 +37,31 @@ class AreaRanking(BaseModel):
     crime_count: int
     share_pct: float
     crime_rank: int
+
+
+class HotspotRun(BaseModel):
+    run_key: int
+    eps: float            # metros reales (haversine), guardado por save_run
+    min_samples: int
+    computed_at: datetime  # serializado a ISO por FastAPI
+    n_clusters: int
+    n_noise: int
+
+
+class HotspotCluster(BaseModel):
+    cluster_label: int
+    centroid_lat: float
+    centroid_lon: float
+    n_points: int
+    min_lat: float
+    max_lat: float
+    min_lon: float
+    max_lon: float
+
+
+class HotspotsResponse(BaseModel):
+    run: HotspotRun
+    clusters: list[HotspotCluster]
 
 
 class Health(BaseModel):
