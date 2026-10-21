@@ -26,6 +26,35 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 6 · Paso 2 — Endpoints analíticos (trends / by-type / by-community-area)
+
+**Qué:** 3 endpoints nuevos en `routers/crimes.py` + sus services y schemas:
+`GET /api/crimes/trends` (tendencia mensual desde `vw_monthly_crimes`,
+mes más viejo→nuevo), `GET /api/crimes/by-type` (fact+dim_crime_type
+agrupado por primary_type con share_pct; empates alfabéticos, `limit`
+opcional 1..100) y `GET /api/crimes/by-community-area` (directo de
+`vw_area_crime_ranking` con rank ascendente y `limit` opcional). 6 tests
+nuevos (test_crimes_analytics.py) con la misma fixture: 1 mes exacto,
+tres tipos empatados alfabéticamente, dos áreas empatadas (share 50.0
+sobre las RANKEADAS — la fila sin área queda fuera), `limit` y `limit`
+inválido → 422.
+**Por qué:** ítem central del Sprint 6. La API no re-agrega: trends y
+ranking salen de las vistas del Sprint 4 (misma fuente que el dashboard);
+by-type agrega en SQL directo (no hay vista de tipos). `limit` paramétrico
+validado por FastAPI (Query ge/le) → 422 automático.
+**Archivos:**
+- `api/app/schemas/crimes.py` — MonthlyTrend / CrimeTypeCount / AreaRanking
+- `api/app/services/crimes.py` — monthly_trends / crime_types / area_ranking
+- `api/app/routers/crimes.py` — 3 endpoints nuevos
+- `api/tests/test_crimes_analytics.py` — 6 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest api/tests -q` → 9 passed (3 + 6) · `pytest python/tests -q` →
+  142 passed · `ruff check python api` → All checks passed
+**Cómo verificar:**
+- Checklist "Sprint 6 · Paso 2" en `docs/verification.md` (pytest, ruff,
+  smoke uvicorn de los 3 endpoints).
+
 ## [2026-10-17] Sprint 6 · Paso 1 — Scaffold FastAPI (/health + /crimes/summary)
 
 **Qué:** paquete `api/app/` nuevo: `main.py` (factory `create_app()` +

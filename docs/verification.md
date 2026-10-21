@@ -762,6 +762,35 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
 
+### Paso 2 — Endpoints analíticos (trends / by-type / by-community-area) `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `api/app/schemas/crimes.py` — MonthlyTrend / CrimeTypeCount / AreaRanking
+  - `api/app/services/crimes.py` — monthly_trends / crime_types / area_ranking
+  - `api/app/routers/crimes.py` — 3 endpoints nuevos
+  - `api/tests/test_crimes_analytics.py` — 6 tests
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 9 passed (3 + 6)
+  - `pytest python/tests -q` → 142 passed
+  - `ruff check python api` → All checks passed
+- **Verificar en dev (uvicorn + docs):**
+  ```powershell
+  .\.venv\Scripts\python.exe -m uvicorn api.app.main:app --port 8000
+  # http://localhost:8000/docs y:
+  #   /api/crimes/trends          → 1 fila (sept-2026, 19.642)
+  #   /api/crimes/by-type         → THEFT/BATTERY/... con shares reales
+  #   /api/crimes/by-community-area → ranking con nombres y rank
+  #   ?limit=5 funciona en by-type y by-community-area
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint6-api-analytics develop
+  git add api/ docs/
+  git commit -m "feat: crimes analytics endpoints (trends, by-type, by-area)"
+  git push -u origin feature/sprint6-api-analytics
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
 ### Fix 2 — ruff.toml: notebooks fuera del lint `[ ]` (pendiente de tu verificación)
 
 - **Objetos revisables:**
