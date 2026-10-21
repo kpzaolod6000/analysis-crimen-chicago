@@ -26,6 +26,27 @@ Reglas:
 
 ---
 
+## [2026-10-21] Sprint 6 — Cierre del sprint (bump 0.6.0)
+
+**Qué:** Sprint 6 marcado `[x]` en `docs/plan.md` y estado del README
+actualizado (Sprint 6 hecho, próximo Sprint 7). API completa: 6 endpoints
+(health, summary, trends, by-type, by-community-area, hotspots,
+reports/weekly) con OpenAPI en `/docs`, 16 tests de TestClient contra la
+DB de pruebas y paso `test-api` en el CI.
+**Por qué:** cierre de sprint según git-workflow §5. El backend del MVP
+está completo: las vistas del warehouse y los hotspots ya son
+consumibles; sigue el frontend (Sprint 7).
+**Archivos:**
+- `docs/plan.md` — Sprint 6 `[x]`
+- `README.md` — §Estado
+- `docs/changelog.md`, `docs/verification.md` — registro
+**Tests:**
+- `pytest api/tests -q` → 16 passed · `pytest python/tests -q` → 142
+  passed (total 158) · ruff limpio
+**Cómo verificar:**
+- `docs/plan.md` muestra Sprint 6 `[x]`; tras el release: `git tag -l`
+  lista `v0.6.0`.
+
 ## [2026-10-17] Sprint 6 · Paso 4 — Endpoint /api/reports/weekly (cierre de ítems)
 
 **Qué:** router `reports.py` nuevo (incluido en main) con

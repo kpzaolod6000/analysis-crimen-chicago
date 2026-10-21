@@ -247,11 +247,13 @@ Cada sprint incluye sus tests (ver [docs/testing.md](testing.md)).
 - Resultado: hotspots observados calculados y almacenados (grid 77×5,
   q90 = 110.6/semana → 10.1% área-semanas hotspot; release `v0.5.0`).
 
-### Sprint 6 — FastAPI `[ ]`
-- [ ] Endpoints: `/api/crimes/summary|trends|by-type|by-community-area|hotspots`
-- [ ] **`/api/reports/weekly`** (para Power Automate)
-- [ ] Tests de integración con TestClient + DB de prueba
-- Resultado: API funcional con OpenAPI docs.
+### Sprint 6 — FastAPI `[x]`
+- [x] Endpoints: `/api/crimes/summary|trends|by-type|by-community-area|hotspots`
+- [x] **`/api/reports/weekly`** (para Power Automate; ventana data-driven)
+- [x] Tests de integración con TestClient + DB de prueba (16 tests,
+      `api/tests/`, target `test-api` + paso en el CI)
+- Resultado: API funcional con OpenAPI docs (`/docs`); 16 passed, suite
+  total 158 (142 + 16); release `v0.6.0`.
 
 ### Sprint 7 — D3 Dashboard `[ ]`
 - [ ] KPI cards, line chart (hover/zoom/brush), heatmap día×hora
