@@ -26,6 +26,36 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 6 · Paso 4 — Endpoint /api/reports/weekly (cierre de ítems)
+
+**Qué:** router `reports.py` nuevo (incluido en main) con
+`GET /api/reports/weekly` — payload JSON para Power Automate: ventana
+data-driven (end = max full_date del fact, start = end−6; 404 si el
+warehouse está vacío), resumen de la semana (crímenes/arrests/tasa),
+`crime_change_pct` vs los 7 días previos (None si la base es 0), top 5
+tipos (share dentro de la ventana), top 5 áreas con nombres y top 3
+hotspots de la última corrida DBSCAN (vacío si no hay). 3 tests
+(test_reports_weekly.py): cuerpo exacto con la fixture (3 crímenes,
+semana previa vacía → None), 404 con fact vacío (truncate + restore via
+reload idempotente — solo fact: si truncara raw el reload no tendría
+fuente) y recuperabilidad del endpoint tras el restore.
+**Por qué:** último ítem del plan de Sprint 6 (endpoints + reporte
+semanal + tests). La ventana data-driven es la decisión clave: el reporte
+sema "los últimos 7 días DE DATOS" — igual en dev (1 mes) y con backfill
+completo; Power Automate no necesita pasar fechas.
+**Archivos:**
+- `api/app/schemas/crimes.py` — WeeklyReport + filas (tipos/áreas)
+- `api/app/services/crimes.py` — weekly_report()
+- `api/app/routers/reports.py` — router /api/reports (nuevo)
+- `api/app/main.py` — include_router(reports)
+- `api/tests/test_reports_weekly.py` — 3 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest api/tests -q` → 16 passed (13 + 3) · `pytest python/tests -q` →
+  142 passed · `ruff check python api` → All checks passed
+**Cómo verificar:**
+- Checklist "Sprint 6 · Paso 4" en `docs/verification.md`.
+
 ## [2026-10-17] Sprint 6 · Paso 3 — Endpoint /api/crimes/hotspots
 
 **Qué:** endpoint `GET /api/crimes/hotspots` (routers/services/schemas):

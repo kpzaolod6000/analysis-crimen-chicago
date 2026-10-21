@@ -7,7 +7,7 @@ Docs automáticas: http://localhost:8000/docs (OpenAPI).
 
 import fastapi
 
-from api.app.routers import crimes, health
+from api.app.routers import crimes, health, reports
 
 
 def create_app() -> fastapi.FastAPI:
@@ -21,6 +21,7 @@ def create_app() -> fastapi.FastAPI:
     )
     app.include_router(health.router)
     app.include_router(crimes.router)
+    app.include_router(reports.router)
     return app
 
 

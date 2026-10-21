@@ -64,6 +64,30 @@ class HotspotsResponse(BaseModel):
     clusters: list[HotspotCluster]
 
 
+class WeeklyTypeRow(BaseModel):
+    primary_type: str
+    crime_count: int
+    share_pct: float
+
+
+class WeeklyAreaRow(BaseModel):
+    community_area: int
+    community_area_name: str
+    crime_count: int
+
+
+class WeeklyReport(BaseModel):
+    period_start: date
+    period_end: date
+    crime_count: int
+    arrest_count: int
+    arrest_rate_pct: float
+    crime_change_pct: float | None   # vs los 7 días previos; None si no hay base
+    top_crime_types: list[WeeklyTypeRow]
+    top_areas: list[WeeklyAreaRow]
+    hotspots: list[HotspotCluster]   # top 3 de la última corrida DBSCAN
+
+
 class Health(BaseModel):
     status: str
     database: str
