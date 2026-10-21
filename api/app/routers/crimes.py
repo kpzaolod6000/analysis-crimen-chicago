@@ -7,6 +7,7 @@ from api.app.schemas.crimes import (
     AreaRanking,
     CrimesSummary,
     CrimeTypeCount,
+    HotspotsResponse,
     MonthlyTrend,
 )
 from api.app.services import crimes as crimes_service
@@ -38,3 +39,17 @@ def get_crimes_by_community_area(
     limit: int | None = fastapi.Query(default=None, ge=1, le=100),
 ):
     return crimes_service.area_ranking(conn, limit)
+
+
+@router.get("/hotspots", response_model=HotspotsResponse)
+def get_crimes_hotspots(
+    conn: Conn,
+    run_key: int | None = fastapi.Query(default=None, ge=1),
+):
+    data = crimes_service.hotspots(conn, run_key)
+    if data is None:
+        raise fastapi.HTTPException(
+            status_code=404,
+            detail="no hotspot runs stored (run the DBSCAN notebook first)",
+        )
+    return data

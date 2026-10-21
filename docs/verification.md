@@ -791,6 +791,32 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
 
+### Paso 3 — Endpoint /api/crimes/hotspots `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `api/app/schemas/crimes.py` — HotspotRun / HotspotCluster / HotspotsResponse
+  - `api/app/services/crimes.py` — hotspots() (última corrida o run_key)
+  - `api/app/routers/crimes.py` — endpoint (404 si no hay corridas)
+  - `api/tests/test_crimes_hotspots.py` — 4 tests
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 13 passed (9 + 4)
+  - `pytest python/tests -q` → 142 passed
+  - `ruff check python api` → All checks passed
+- **Verificar en dev (con tu corrida real del notebook 04):**
+  ```powershell
+  .\.venv\Scripts\python.exe -m uvicorn api.app.main:app --port 8000
+  # http://localhost:8000/api/crimes/hotspots
+  # → la corrida (eps 200/min 25) + 51 clusters ordenados por volumen
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint6-api-hotspots develop
+  git add api/ docs/
+  git commit -m "feat: hotspots endpoint reading dbscan runs"
+  git push -u origin feature/sprint6-api-hotspots
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
 ### Fix 2 — ruff.toml: notebooks fuera del lint `[ ]` (pendiente de tu verificación)
 
 - **Objetos revisables:**
