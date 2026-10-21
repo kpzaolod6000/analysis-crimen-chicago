@@ -26,6 +26,26 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 5 — Cierre del sprint (bump 0.5.0)
+
+**Qué:** Sprint 5 marcado `[x]` en `docs/plan.md` y estado del README
+actualizado (Sprint 5 hecho, próximo Sprint 6). Resultados en dev: los 5
+notebooks corridos con los datos reales (sept-2026): 19.642 en staging,
+grilla semanal 77×5, umbral q90 = 110.6 → 39 hotspots (10.1%), corrida
+DBSCAN (200 m/25 → 51 clusters) persistida con proveniencia.
+**Por qué:** cierre de sprint según git-workflow §5. El MVP analítico
+queda completo: Socrata → n8n → PostgreSQL → vistas → Python EDA/ML con
+hotspots observados almacenados; falta exponerlo (FastAPI, Sprint 6).
+**Archivos:**
+- `docs/plan.md` — Sprint 5 `[x]`
+- `README.md` — §Estado
+- `docs/changelog.md`, `docs/verification.md` — registro
+**Tests:**
+- Suite 142 passed (58 unit + 84 integration) · ruff limpio
+**Cómo verificar:**
+- `docs/plan.md` muestra Sprint 5 `[x]`; tras el release: `git tag -l`
+  lista `v0.5.0`.
+
 ## [2026-10-17] Sprint 5 · Paso 6 — Notebook 05_hotspot_model (cierre de hotspots observados)
 
 **Qué:** `python/notebooks/05_hotspot_model.ipynb` (11 celdas): consolida
