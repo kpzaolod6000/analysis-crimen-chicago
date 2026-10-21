@@ -36,11 +36,12 @@ n8n · PostgreSQL 16 · Python 3.12 · FastAPI · D3.js · Playwright · Power A
 
 ## Estado
 
-Sprint 4 completado (5 vistas analíticas en `warehouse` con window
-functions — mensual, ranking de áreas con RANK, month-over-month con LAG,
-heatmap día×hora y resumen por área — más tests con fixtures conocidos).
-Release: `v0.4.0`. Próximo paso: **Sprint 5 — Python EDA + ML Nivel 1**
-(notebooks 01–05, features semanales y DBSCAN).
+Sprint 5 completado (EDA en notebooks 01–05 contra PostgreSQL: calidad,
+tendencias temporales, distribución espacial, DBSCAN de hotspots con
+haversine y hotspots observados; `src/features/` con features semanales +
+targets para el ML Nivel 2; clusters persistidos con proveniencia).
+Release: `v0.5.0`. Próximo paso: **Sprint 6 — FastAPI** (endpoints que
+expondrán las vistas y hotspots al dashboard).
 
 Antes de empezar, instala el entorno siguiendo
 [docs/dev-environment.md](docs/dev-environment.md) §7 (Docker Desktop, Node

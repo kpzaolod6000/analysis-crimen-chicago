@@ -26,6 +26,253 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 5 — Cierre del sprint (bump 0.5.0)
+
+**Qué:** Sprint 5 marcado `[x]` en `docs/plan.md` y estado del README
+actualizado (Sprint 5 hecho, próximo Sprint 6). Resultados en dev: los 5
+notebooks corridos con los datos reales (sept-2026): 19.642 en staging,
+grilla semanal 77×5, umbral q90 = 110.6 → 39 hotspots (10.1%), corrida
+DBSCAN (200 m/25 → 51 clusters) persistida con proveniencia.
+**Por qué:** cierre de sprint según git-workflow §5. El MVP analítico
+queda completo: Socrata → n8n → PostgreSQL → vistas → Python EDA/ML con
+hotspots observados almacenados; falta exponerlo (FastAPI, Sprint 6).
+**Archivos:**
+- `docs/plan.md` — Sprint 5 `[x]`
+- `README.md` — §Estado
+- `docs/changelog.md`, `docs/verification.md` — registro
+**Tests:**
+- Suite 142 passed (58 unit + 84 integration) · ruff limpio
+**Cómo verificar:**
+- `docs/plan.md` muestra Sprint 5 `[x]`; tras el release: `git tag -l`
+  lista `v0.5.0`.
+
+## [2026-10-17] Sprint 5 · Paso 6 — Notebook 05_hotspot_model (cierre de hotspots observados)
+
+**Qué:** `python/notebooks/05_hotspot_model.ipynb` (11 celdas): consolida
+los hotspots OBSERVADOS desde dos miradas — (a) serie semanal por área
+con `features.weekly` (grilla 77×5 con los datos reales de dev, umbral q90
+= 110.6 crímenes/semana → 39 área-semanas hotspot, 10.1%) y persistencia
+de área (¿cuántas semanas seguidas es hotspot cada zona?, top 12 con
+nombres); (b) contraste con los clusters DBSCAN guardados (queries a
+`warehouse.hotspot_runs`/`hotspot_clusters`, corrección si no hay runs).
+Celda de conclusiones orientada al panel observado-vs-predicho del
+dashboard.
+**Por qué:** último paso del Sprint 5. Une los productos del sprint
+(weekly.py + DBSCAN en DB) en la vista que el dashboard consumirá; deja
+explícito que el modelo Nivel 2 (Sprint 10) ya tiene sus targets listos
+(`crime_count_next_week`, `hotspot_next_week` en `build_features`).
+**Archivos:**
+- `python/notebooks/05_hotspot_model.ipynb` — notebook (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite (notebook analítico). Las 5 celdas se ejecutaron
+  headless contra dev (eventos 19.602 → grid 385 filas; 10.1% hotspots).
+  Suite sigue en 142 passed.
+**Cómo verificar:**
+- Checklist "Sprint 5 · Paso 6" en `docs/verification.md`.
+
+## [2026-10-17] Sprint 5 · Paso 5 (parte 2) — Notebook 04_dbscan_hotspots
+
+**Qué:** `python/notebooks/04_dbscan_hotspots.ipynb` (16 celdas): explora el
+grid eps (150/200/300/500 m) × min_samples (10/25/50) sobre los 19.552
+puntos reales (tabla con clusters/ruido%/tamaños), corre los parámetros
+elegidos (200 m / 25 → 51 clusters, 81% ruido, escala de cuadra), visualiza
+la nube coloreada por cluster (ruido gris, tab20), muestra el resumen
+(centroide/bbox) y guarda la corrida en dev vía `dbscan.save_run`
+(hotspot_runs + hotspot_clusters, con queries de verificación).
+**Por qué:** segunda mitad del bloque DBSCAN. Los defaults salieron del
+grid medido (no elegidos a ojo): 500/10 = mega-bola (18.700 pts), 150/10 =
+291 micro-clusters; 200/25 equilibra distinción y tamaño interpretable. El
+guardado es append-only (Run All crea corrida nueva, comparable).
+**Archivos:**
+- `python/notebooks/04_dbscan_hotspots.ipynb` — notebook (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite (notebook analítico). Las 6 celdas computacionales se
+  ejecutaron headless contra dev (grid incluido); las 2 de persistencia
+  quedan para el Run All del usuario (escriben en dev). Suite 142 passed.
+**Cómo verificar:**
+- Checklist "Paso 5 parte 2" en `docs/verification.md`.
+
+## [2026-10-17] Sprint 5 · Paso 5 (parte 1) — Persistencia de hotspots DBSCAN
+
+**Qué:** (a) migración `005_hotspot_clusters.sql`: `warehouse.hotspot_runs`
+(una corrida: eps, min_samples, computed_at, n_clusters, n_noise) +
+`warehouse.hotspot_clusters` (un cluster: centroide, bbox, n_points,
+UNIQUE (run_key, cluster_label), CHECK label >= 0 — el ruido -1 NO se
+guarda como cluster, queda en n_noise). (b) `python/src/models/dbscan.py`
+(paquete models nuevo): `fit` (sklearn DBSCAN sobre lat/lon con métrica
+**haversine**: eps en METROS reales, coordenadas → radianes, ball_tree;
+el euclídeo en grados distorsiona E-O por cos(lat) ≈ 0.745 en Chicago),
+`cluster_summaries` (centroide/bbox/volumen por cluster, orden volumen
+DESC) y `save_run` (persistencia atómica: transaction explícita con
+rollback/restore de autocommit; append-only por corrida). (c) 7 tests
+unit (test_dbscan.py: 2 tríos sintéticos + outlier, labels/centroides/bbox,
+empty inputs) + 6 de integración (test_hotspot_clusters.py: DDL, save_run,
+append de corridas, corrida all-noise con 0 clusters, CHECK del DDL como
+defensa). Dos correcciones de aserción propias en el camino: ruff SIM117
+nested-with y el test de tabs del Paso 2 (set exacto → subset, porque
+005 agrega tablas al mismo schema y en CI corre después).
+**Por qué:** primer ítem del bloque DBSCAN del plan (§8 Nivel 1). Haversine
+elegida a propuesta del usuario (material de DBSCAN: la métrica debe
+reflejar similitud real): con lat/lon, euclídeo en grados subestima
+distancias E-O (cos 41.88 ≈ 0.745) y eps deja de ser interpretable;
+haversine hace eps = metros reales. La separación runs/clusters guarda la
+PROVENIENCIA (con qué eps/min_samples salió cada hotspot; re-correr con
+otros parámetros no pisa la corrida anterior — comparación de parámetros
+para el dashboard Sprint 10).
+**Archivos:**
+- `database/migrations/005_hotspot_clusters.sql` — DDL (nuevo)
+- `python/src/models/__init__.py` + `dbscan.py` — módulo (nuevo)
+- `python/tests/unit/test_dbscan.py` — 7 tests (nuevo)
+- `python/tests/integration/test_hotspot_clusters.py` — 6 tests (nuevo)
+- `python/tests/integration/test_dims_fact_schema.py` — set → subset
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest python/tests -q` → 142 passed (58 unit + 84 integration)
+- `ruff check python` → All checks passed
+**Cómo verificar:**
+- Checklist "Sprint 5 · Paso 5" en `docs/verification.md` (pytest, ruff,
+  sanity opcional con los 19.642 reales).
+
+## [2026-10-17] Sprint 5 · Paso 4 — src/features/weekly.py (features semanales con lags)
+
+**Qué:** primer código de producción del Sprint 5: `python/src/features/`
+(paquete nuevo) con `weekly.py` — transformaciones puras de pandas: 
+`week_start` (lunes ISO de cada fecha), `weekly_counts` (eventos → grilla
+semanal COMPLETA por área, zero-fill de semanas vacías), `hotspot_threshold`
+(percentil q de counts), `add_lags` (lag_1w/2w/4w/8w por área) y
+`build_features` (lags + lag_52w + targets `crime_count_next_week` y
+`hotspot_next_week` binario vs umbral q90). 18 tests unit
+(test_features_weekly.py) con fixture hand-computed: área 1 continua
+10→50, área 2 con huecos zero-filled (y un miércoles para probar la semana
+ISO), umbral q90 = 41.0, lags sin leaks entre áreas, NaN vs None cubiertos.
+**Por qué:** ítem central del plan §8 (features por community_area +
+semana, lags 1/2/4/8, misma semana año anterior). La grilla completa con
+zero-fill es la decisión clave: sin ella `shift()` de pandas es posicional
+y un hueco desalinearía todos los lags. El módulo NO toca la DB (los
+notebooks/API traen los eventos con SQL) — unit-testeable sin PostgreSQL
+y cumple "PostgreSQL transforma, Python calcula features".
+**Archivos:**
+- `python/src/features/__init__.py` — paquete (nuevo)
+- `python/src/features/weekly.py` — módulo (nuevo)
+- `python/tests/unit/test_features_weekly.py` — 18 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest python/tests/unit` → 55 passed (37 + 18) · suite total →
+  129 passed (55 unit + 74 integration)
+- `ruff check python` → All checks passed
+**Cómo verificar:**
+- Checklist "Sprint 5 · Paso 4" en `docs/verification.md` (pytest, ruff,
+  sanity opcional: build_features sobre los eventos reales de dev).
+
+## [2026-10-17] Sprint 5 · Fix 2 — ruff.toml: notebooks fuera del lint
+
+**Qué:** nuevo `ruff.toml` en la raíz con `exclude = ["*.ipynb"]`. Al sumar
+notebooks (Paso 1) ruff pasó a lintearlos (8 findings: F401 falso por
+import usado en otra celda — ruff scopea por celda —, RUF100 de un
+`noqa: E402` heredado del template, imports muertos en nb02 y C408/I001 de
+estilo).
+**Por qué:** los notebooks son artefactos exploratorios (testing.md: no se
+testean; se validan ejecutándolos, práctica ya aplicada en los 3 pasos).
+Lintearlos pelearía con el linter en cada edición de celda del usuario y
+los F401 cross-celda son falsos positivos estructurales. El código de
+producción sigue linteado completo (decisión tomada con el usuario: opción
+"excluir").
+**Archivos:**
+- `ruff.toml` — config del linter (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro
+**Tests:**
+- `ruff check python` → All checks passed (8 findings → 0)
+- `pytest python/tests -q` → 111 passed (sin cambios)
+**Cómo verificar:**
+- Checklist "Fix 2" del Sprint 5 en `docs/verification.md`.
+
+## [2026-10-17] Sprint 5 · Paso 3 — Notebook 03_spatial_distribution
+
+**Qué:** `python/notebooks/03_spatial_distribution.ipynb` (11 celdas): dónde
+ocurre el crimen — ranking por community area (`vw_area_crime_ranking`, top
+15 con share), arresto/doméstico por área (`vw_area_summary` con tasas
+calculadas en SQL), nube de coordenadas lat/lon desde `staging.crimes`
+(coloreada por arresto) y heatmap tipo×área (CTE top 6 tipos × top 12 áreas,
+pivoteado a matriz). Reutiliza el helper `q()` con conversión Decimal→float.
+**Por qué:** tercer paso del Sprint 5 y antesala del DBSCAN (Paso 5): el
+notebook explora la señal espacial que después clusterizará. Mantiene el
+principio "PostgreSQL agrega, Python presenta": ranking y resumen por área
+salen de las vistas del Sprint 4; solo coordenadas y cross-tab consultan
+staging directo.
+**Archivos:**
+- `python/notebooks/03_spatial_distribution.ipynb` — notebook (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite (notebook analítico). Las 5 celdas de código se ejecutaron
+  headless (Agg) contra dev antes de entregar, sin error: ranking (Austin 927,
+  Near North Side 871…), tasas por área, scatter (19.552/19.642 = 99.5% con
+  coords), heatmap tipo×área (Near North THEFT 362, Austin BATTERY 219).
+  Suite sigue en 111 passed.
+**Cómo verificar:**
+- Checklist "Sprint 5 · Paso 3" en `docs/verification.md` (Run All del
+  notebook y revisión de los 4 gráficos).
+
+## [2026-10-17] Sprint 5 · Paso 2 — Notebook 02_temporal_trends
+
+**Qué:** `python/notebooks/02_temporal_trends.ipynb` (15 celdas): patrones
+temporales del crimen consultando las **vistas del Sprint 4** (no re-agrega
+en pandas): ventana de datos real, tendencia mensual (`vw_monthly_crimes`,
+línea dual crímenes + % arresto), month-over-month (`vw_month_over_month`),
+día de la semana (ISO, desde `fact_crime`+`dim_date`), fin de semana vs entre
+semana (promedio por día vía `is_weekend`), y heatmap día×hora
+(`vw_day_hour` pivoteado a matriz 7×24 con `imshow`). El helper `q()`
+convierte columnas `Decimal` → `float` (PG `round(numeric)` llega como
+Decimal y matplotlib no lo grafica: "no numeric data to plot"). Las celdas
+mensuales degradan con gracia si hay <2 meses cargados.
+**Por qué:** segundo paso del Sprint 5. Respeta "PostgreSQL transforma,
+Python presenta": el notebook solo consulta las vistas analíticas y grafica.
+Con la ventana actual de dev (~1 mes, sept-2026) los patrones de día/hora ya
+son significativos; los mensuales se llenan al ampliar la ventana (Sprint 2
+Paso 3).
+**Archivos:**
+- `python/notebooks/02_temporal_trends.ipynb` — notebook (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite (notebook analítico). Las queries SQL se validaron contra
+  dev: ventana (19.642/30 días/1 mes), día-semana, weekend (666.9 vs 650.3
+  por día), heatmap (168 celdas 7×24), MoM (1 fila NULL). El plot de weekend
+  se ejecutó headless (Agg) tras el fix Decimal→float: sin TypeError. Suite
+  sigue en 111 passed.
+**Cómo verificar:**
+- Checklist "Sprint 5 · Paso 2" en `docs/verification.md` (Run All del
+  notebook con kernel `chicago-crimes` y revisión de outputs/gráficos).
+
+## [2026-10-17] Sprint 5 · Paso 1 — Entorno ML + notebook 01_data_quality
+
+**Qué:** `python/requirements.txt` extendido con el stack del sprint (numpy,
+pandas, scipy, scikit-learn, matplotlib, ipykernel, jupyterlab — con
+secciones comentadas por uso) + notebook `01_data_quality.ipynb` (18
+celdas, kernel `chicago-crimes` sobre el `.venv`): conecta a dev (5432) con
+psycopg2 sin SQLAlchemy, carga `staging.crimes` completa, perfila dtypes/
+describe/nulos (con gráfico), muestra top primary_type, tasas
+arrest/domestic + conteo por año, histograma por hora del día, top-10
+community areas con nombres (JOIN del seed), comparativo raw vs staging
+(zero-coords y vacíos → nulos) y las métricas de `ingestion.quality`
+(la misma fuente de los data tests). Cierra con una celda de conclusiones
+como guía de preguntas.
+**Por qué:** primer puerta de Sprint 5 (Python EDA). El notebook se conecta
+a la DB real del repo (no a CSV), usa `staging` (la capa limpia, principio
+"PostgreSQL transforma" — el EDA también debe ver datos saneados) y reusa
+`quality.py` para no duplicar métricas en pandas. Numpy/pandas ya estaban
+en el venv (2.5.3 / 3.0.6, fijadas en este requirements).
+**Archivos:**
+- `python/requirements.txt` — libro del stack del sprint
+- `python/notebooks/01_data_quality.ipynb` — notebook (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite (notebook analítico; no hay código de producción).
+  La suite sigue en 111 passed — `ruff check python` para confirmar.
+**Cómo verificar:**
+- Checklist "Sprint 5 · Paso 1" en `docs/verification.md` (pip install,
+  registro del kernel, correr el notebook y revisar outputs sane).
+
 ## [2026-10-17] Sprint 4 · Fix 1 — Suite de vistas estabilizado para CI
 
 **Qué:** 6 tests rojos tras integrar las vistas (runs de Actions rojos en la

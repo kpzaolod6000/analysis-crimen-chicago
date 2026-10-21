@@ -1,4 +1,21 @@
 # Dependencias de Python (tests + ML + API, crecen por sprint).
 # Instalación: pip install -r python/requirements.txt (dentro de .venv con Python 3.12)
+
+# base / tests (Sprint 2)
 pytest>=8.0
 psycopg2-binary>=2.9
+
+# datos (Sprint 5: EDA + ML Nivel 1)
+numpy>=2.2
+pandas>=3.0
+
+# ML Nivel 1 (DBSCAN) y Nivel 2 (RandomForest/HistGradientBoosting, Sprint 10)
+scipy>=1.14
+scikit-learn>=1.6
+
+# EDA / visualización en notebooks
+matplotlib>=3.10
+
+# runtime de notebooks (kernel de Jupyter sobre el .venv)
+ipykernel>=6.29
+jupyterlab>=4.3

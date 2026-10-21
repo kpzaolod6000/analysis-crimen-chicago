@@ -535,3 +535,205 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # (ese commit lleva el registro del fix + el cierre: mensaje sugerido
   # "docs: record view-test fix and close sprint 4 (bump 0.4.0)")
   ```
+
+---
+
+## Sprint 5 — Python EDA + ML Nivel 1
+
+### Paso 1 — Entorno ML + notebook 01_data_quality `[x]` (merged en develop)
+
+- **Objetos revisables:**
+  - `python/requirements.txt` — stack del sprint (numpy/pandas/scipy/
+    scikit-learn/matplotlib/ipykernel/jupyterlab, con comentarios)
+  - `python/notebooks/01_data_quality.ipynb` — EDA de calidad sobre dev
+    (18 celdas; conexión psycopg2, no CSV; kernel `chicago-crimes`)
+- **Verificar contenido:**
+  - `pytest python/tests -q` → 111 passed (suite sin cambios)
+  - `ruff check python` → All checks passed
+- **Verificar (deps + notebook):**
+  ```powershell
+  .\.venv\Scripts\python.exe -m pip install -r python\requirements.txt
+  .\.venv\Scripts\python.exe -m ipykernel install --user --name chicago-crimes --display-name "Python (chicago-crimes)"
+  # VS Code → python/notebooks/01_data_quality.ipynb → kernel
+  # "Python (chicago-crimes)" → Run All (docker compose up -d antes)
+  ```
+  Esperado: 19.642 filas · ventana sept-2026 · quality_report en 0
+  advertencias.
+
+### Paso 2 — Notebook 02_temporal_trends `[x]` (merged en develop)
+
+- **Objetos revisables:**
+  - `python/notebooks/02_temporal_trends.ipynb` — 15 celdas: consume las
+    vistas del Sprint 4 (`vw_monthly_crimes`, `vw_month_over_month`,
+    `vw_day_hour`) + `fact_crime`/`dim_date`; NO re-agrega en pandas.
+- **Verificar contenido:**
+  - `pytest python/tests -q` → 111 passed (suite sin cambios)
+  - `ruff check python` → All checks passed
+  - Las 5 queries del notebook ya se validaron contra dev (asistente):
+    ventana 19.642/30 días/1 mes · día-semana · weekend 666.9 vs 650.3 por
+    día · heatmap 168 celdas (7×24) · MoM 1 fila NULL.
+- **Verificar (tu parte):**
+  ```powershell
+  # VS Code → python/notebooks/02_temporal_trends.ipynb → kernel
+  # "Python (chicago-crimes)" → Run All
+  ```
+  Esperado: ventana sept-2026 (1 mes) · tendencia mensual con 1 punto (nota
+  de "ampliar ventana") · día-semana con barras · weekend ~667 vs ~650 por
+  día · heatmap 7×24 poblado · MoM 1 fila con NULLs. Los gráficos mensuales
+  se llenan al cargar la ventana de 1 año (Sprint 2 · Paso 3).
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint5-nb02-temporal develop
+  git add python/notebooks/02_temporal_trends.ipynb docs/
+  git commit -m "feat: notebook 02 temporal trends over sprint 4 views"
+  git push -u origin feature/sprint5-nb02-temporal
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 3 — Notebook 03_spatial_distribution `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `python/notebooks/03_spatial_distribution.ipynb` — 11 celdas: ranking
+    por área (`vw_area_crime_ranking`), arresto/doméstico por área
+    (`vw_area_summary`), nube lat/lon (staging), heatmap tipo×área (CTE).
+- **Verificar contenido:**
+  - `pytest python/tests -q` → 111 passed (suite sin cambios)
+  - `ruff check python` → All checks passed
+  - Las 5 celdas de código ya se ejecutaron headless contra dev (asistente),
+    sin error: scatter 19.552/19.642 (99.5%) con coords.
+- **Verificar (tu parte):**
+  ```powershell
+  # VS Code → python/notebooks/03_spatial_distribution.ipynb → kernel
+  # "Python (chicago-crimes)" → Run All
+  ```
+  Esperado: top áreas Austin/Near North Side/Near West Side… · gráfico de
+  tasas arresto/doméstico · nube de puntos con forma de Chicago (color por
+  arresto) · heatmap tipo×área (THEFT domina Loop/Near North).
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint5-nb03-spatial develop
+  git add python/notebooks/03_spatial_distribution.ipynb docs/
+  git commit -m "feat: notebook 03 spatial distribution by area and coords"
+  git push -u origin feature/sprint5-nb03-spatial
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 4 — src/features/weekly.py + tests unit `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `python/src/features/__init__.py` + `weekly.py` — módulo puro pandas:
+    grilla semanal completa (zero-fill), lags 1/2/4/8/52 por área,
+    `crime_count_next_week` + `hotspot_next_week` (umbral q90)
+  - `python/tests/unit/test_features_weekly.py` — 18 tests hand-computed
+- **Verificar contenido:**
+  - `docker compose -f docker-compose.test.yml up -d` (si no está levantada)
+  - `pytest python/tests/unit -v` → 55 passed (37 + 18)
+  - `pytest python/tests -q` → 129 passed (55 unit + 74 integration)
+  - `ruff check python` → All checks passed
+- **Sanity opcional en dev** (el módulo es puro; este check consulta la DB):
+  ```powershell
+  .\.venv\Scripts\python.exe -c "import sys; sys.path.insert(0, r'python\src'); import psycopg2, pandas as pd; from features import weekly; conn = psycopg2.connect(host='localhost', port=5432, user='postgres', password='postgres', dbname='chicago_crimes'); cur = conn.cursor(); cur.execute('SELECT ca.community_area, d.full_date FROM warehouse.fact_crime f JOIN warehouse.dim_community_area ca ON ca.community_area_key=f.community_area_key JOIN warehouse.dim_date d ON d.date_key=f.date_key'); ev = pd.DataFrame(cur.fetchall(), columns=['community_area','full_date']); cur.close(); conn.close(); g = weekly.weekly_counts(ev); print(g.shape); print(g.head(8))"
+  # esperado: 77 áreas... no: solo las áreas CON eventos de sept (≈70+) × 5 semanas
+  # (sept-2026 arranca en la semana del lunes 2026-08-31)
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint5-features-weekly develop
+  git add python/src/features/ python/tests/unit/test_features_weekly.py docs/
+  git commit -m "feat: weekly features per community area with lags"
+  git push -u origin feature/sprint5-features-weekly
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 5 — DBSCAN: DDL + src/models + tests `[ ]` (parte 1; notebook 04 va aparte)
+
+- **Objetos revisables:**
+  - `database/migrations/005_hotspot_clusters.sql` — hotspot_runs +
+    hotspot_clusters (append-only por corrida; ruido en n_noise)
+  - `python/src/models/dbscan.py` — fit / cluster_summaries / save_run
+  - `python/tests/unit/test_dbscan.py` — 7 tests
+  - `python/tests/integration/test_hotspot_clusters.py` — 6 tests
+  - `python/tests/integration/test_dims_fact_schema.py` — set → subset
+- **Verificar contenido:**
+  - `docker compose -f docker-compose.test.yml up -d` (si no está levantada)
+  - `pytest python/tests -q` → 142 passed (58 unit + 84 integration)
+  - `ruff check python` → All checks passed
+- **Verificar en dev (aplicar 005 y probar save_run con datos reales):**
+  ```powershell
+  docker compose exec postgres psql -U postgres -d chicago_crimes -f /database/migrations/005_hotspot_clusters.sql
+  # (la corrida real con los 19.552 puntos llega con el notebook 04, parte 2)
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint5-dbscan-model develop
+  git add database/ python/ docs/
+  git commit -m "feat: dbscan hotspot model with atomic persistence"
+  git push -u origin feature/sprint5-dbscan-model
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 5 parte 2 — Notebook 04_dbscan_hotspots `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `python/notebooks/04_dbscan_hotspots.ipynb` — grid eps×min_samples +
+    visualización + guardado de la corrida elegida en dev
+- **Verificar contenido:**
+  - `pytest python/tests -q` → 142 passed (suite sin cambios)
+  - `ruff check python` → All checks passed
+  - Las 6 celdas computacionales ya se ejecutaron headless contra dev
+    (asistente): 19.552 puntos, grid 200/25 → 51 clusters / 81% ruido.
+- **Verificar (tu parte):**
+  ```powershell
+  # VS Code → 04_dbscan_hotspots.ipynb → kernel "chicago-crimes" → Run All
+  ```
+  Esperado: grid con 12 combos (200/25 = 51 clusters) · scatter con
+  clusters coloreados sobre ruido gris · corrida guardada: el notebook
+  imprime un `run_key` y las queries muestran los clusters de esa corrida.
+  Sanity post-run en psql:
+  ```powershell
+  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT run_key, eps, min_samples, n_clusters, n_noise FROM warehouse.hotspot_runs ORDER BY run_key;"
+  # cada Run All agrega una corrida (append-only); con la primera correrá 1 fila
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint5-nb04-dbscan develop
+  git add python/notebooks/04_dbscan_hotspots.ipynb docs/
+  git commit -m "feat: notebook 04 dbscan hotspot exploration and persistence"
+  git push -u origin feature/sprint5-nb04-dbscan
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 6 — Notebook 05_hotspot_model `[x]` (merged en develop)
+
+- **Objetos revisables:**
+  - `python/notebooks/05_hotspot_model.ipynb` — hotspots observados:
+    grilla semanal por área (features.weekly) + umbral q90 + persistencia
+    + contraste con los clusters DBSCAN guardados
+- **Verificar contenido:**
+  - `pytest python/tests -q` → 142 passed (suite sin cambios)
+  - `ruff check python` → All checks passed
+  - Las 5 celdas se ejecutaron headless contra dev (asistente):
+    eventos 19.602 → grid 385 (77 áreas × 5 semanas) · umbral 110.6 ·
+    39 hotspots (10.1%)
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint5-nb05-hotspot develop
+  git add python/notebooks/05_hotspot_model.ipynb docs/
+  git commit -m "feat: notebook 05 observed hotspots closing sprint 5"
+  git push -u origin feature/sprint5-nb05-hotspot
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Fix 2 — ruff.toml: notebooks fuera del lint `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `ruff.toml` (raíz) — `exclude = ["*.ipynb"]`; razón en el header
+- **Verificar contenido:**
+  - `ruff check python` → All checks passed (antes: 8 findings de notebooks)
+  - `pytest python/tests -q` → 111 passed
+- **Git:**
+  ```powershell
+  # puede viajar en la MISMA rama/PR del Paso 3 o como commit propio
+  git add ruff.toml docs/
+  git commit -m "chore: exclude notebooks from ruff lint (ruff.toml)"
+  ```
