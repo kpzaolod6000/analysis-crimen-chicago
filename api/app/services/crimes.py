@@ -6,6 +6,8 @@ dims and analytics views); all heavy aggregation lives in PostgreSQL.
 
 # (community_area_key, crime_type_key, date_key, arrest)
 
+from datetime import timedelta
+
 
 def crimes_summary(conn) -> dict:
     """Volumen global de la estrella: totales, tasa de arresto y rango."""
@@ -150,6 +152,119 @@ def hotspots(conn, run_key: int | None = None) -> dict | None:
             run,
         )),
         "clusters": clusters,
+    }
+
+
+def weekly_report(conn) -> dict | None:
+    """Reporte semanal para Power Automate (GET /api/reports/weekly).
+
+    Ventana data-driven: los últimos 7 días de datos REALES (end = max
+    full_date del fact), no del reloj — funciona igual en dev con 1 mes y
+    en backfill completo. Comparación vs los 7 días previos (change None
+    si la base tiene 0 crímenes). Hotspots: top 3 de la última corrida
+    (vacío si no hay corridas guardadas). None si el warehouse está vacío
+    (el router responde 404).
+    """
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT max(d.full_date)
+        FROM warehouse.fact_crime f
+        JOIN warehouse.dim_date d ON d.date_key = f.date_key
+        """
+    )
+    (end,) = cur.fetchone()
+    if end is None:
+        cur.close()
+        return None
+
+    start = end - timedelta(days=6)
+    prev_start = start - timedelta(days=7)
+    prev_end = start - timedelta(days=1)
+
+    cur.execute(
+        """
+        SELECT
+            count(*)                                         AS crime_count,
+            count(*) FILTER (WHERE f.arrest)                 AS arrest_count,
+            CASE WHEN count(*) > 0 THEN
+                round(100.0 * count(*) FILTER (WHERE f.arrest) / count(*), 1)
+            END                                              AS arrest_rate_pct
+        FROM warehouse.fact_crime f
+        JOIN warehouse.dim_date d ON d.date_key = f.date_key
+        WHERE d.full_date BETWEEN %s AND %s
+        """,
+        (start, end),
+    )
+    crime_count, arrest_count, arrest_rate_pct = cur.fetchone()
+
+    cur.execute(
+        """
+        SELECT count(*)
+        FROM warehouse.fact_crime f
+        JOIN warehouse.dim_date d ON d.date_key = f.date_key
+        WHERE d.full_date BETWEEN %s AND %s
+        """,
+        (prev_start, prev_end),
+    )
+    (prev_count,) = cur.fetchone()
+    change_pct = (
+        round(100.0 * (crime_count - prev_count) / prev_count, 1)
+        if prev_count > 0 else None
+    )
+
+    cur.execute(
+        """
+        SELECT ct.primary_type,
+               count(*)                                            AS crime_count,
+               round(100.0 * count(*) / sum(count(*)) OVER (), 1)  AS share_pct
+        FROM warehouse.fact_crime f
+        JOIN warehouse.dim_date d ON d.date_key = f.date_key
+        JOIN warehouse.dim_crime_type ct ON ct.crime_type_key = f.crime_type_key
+        WHERE d.full_date BETWEEN %s AND %s
+        GROUP BY ct.primary_type
+        ORDER BY crime_count DESC, ct.primary_type
+        LIMIT 5
+        """,
+        (start, end),
+    )
+    top_types = [
+        dict(zip(["primary_type", "crime_count", "share_pct"], row))
+        for row in cur.fetchall()
+    ]
+
+    cur.execute(
+        """
+        SELECT ca.community_area, ca.community_area_name, count(*) AS crime_count
+        FROM warehouse.fact_crime f
+        JOIN warehouse.dim_date d ON d.date_key = f.date_key
+        JOIN warehouse.dim_community_area ca
+            ON ca.community_area_key = f.community_area_key
+        WHERE d.full_date BETWEEN %s AND %s
+        GROUP BY ca.community_area, ca.community_area_name
+        ORDER BY crime_count DESC, ca.community_area
+        LIMIT 5
+        """,
+        (start, end),
+    )
+    top_areas = [
+        dict(zip(["community_area", "community_area_name", "crime_count"], row))
+        for row in cur.fetchall()
+    ]
+
+    cur.close()
+    latest = hotspots(conn)
+    return {
+        "period_start": start,
+        "period_end": end,
+        "crime_count": crime_count,
+        "arrest_count": arrest_count,
+        "arrest_rate_pct": arrest_rate_pct,
+        "crime_change_pct": change_pct,
+        "top_crime_types": top_types,
+        "top_areas": top_areas,
+        "hotspots": latest["clusters"][:3] if latest else [],
     }
 
 

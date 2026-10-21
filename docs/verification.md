@@ -817,6 +817,34 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
 
+### Paso 4 — Endpoint /api/reports/weekly `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `api/app/routers/reports.py` — router /api/reports (nuevo)
+  - `api/app/services/crimes.py` — weekly_report() (ventana data-driven)
+  - `api/app/schemas/crimes.py` — WeeklyReport + filas
+  - `api/tests/test_reports_weekly.py` — 3 tests
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 16 passed (13 + 3)
+  - `pytest python/tests -q` → 142 passed
+  - `ruff check python api` → All checks passed
+- **Verificar en dev:**
+  ```powershell
+  .\.venv\Scripts\python.exe -m uvicorn api.app.main:app --port 8000
+  # http://localhost:8000/api/reports/weekly
+  # → ventana 2026-09-24..2026-09-30 (últimos 7 días de datos),
+  #   top tipos/áreas reales y top 3 hotspots de tu corrida
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint6-api-reports develop
+  git add api/ docs/
+  git commit -m "feat: weekly report endpoint for power automate"
+  git push -u origin feature/sprint6-api-reports
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  # luego: cierre Sprint 6 + release v0.6.0 (§9)
+  ```
+
 ### Fix 2 — ruff.toml: notebooks fuera del lint `[ ]` (pendiente de tu verificación)
 
 - **Objetos revisables:**
