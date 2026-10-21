@@ -56,3 +56,6 @@ jobs:
 
       - name: Integration tests (PostgreSQL service)
         run: make test-integration
+
+      - name: API tests (TestClient + PostgreSQL service)
+        run: make test-api

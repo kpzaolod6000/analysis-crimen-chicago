@@ -724,6 +724,119 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
 
+---
+
+## Sprint 6 — FastAPI
+
+### Paso 1 — Scaffold API (/health + /crimes/summary) `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `api/app/` — main (factory), db (Conn inyectada), services (SQL),
+    schemas (Pydantic), routers health + crimes
+  - `api/tests/` — conftest (env TEST→API_POSTGRES, defaults 5433, stack
+    completo + 3 filas) + test_health (1) + test_crimes_summary (2)
+  - `Makefile` — `test-api` + lint `ruff check python api`
+  - `.github/workflows/ci.yml` — paso "API tests"
+- **Verificar contenido:**
+  - `docker compose -f docker-compose.test.yml up -d` (si no está levantada)
+  - `pytest api/tests -q` → 3 passed
+  - `pytest python/tests -q` → 142 passed (suite sin cambios)
+  - `ruff check python api` → All checks passed
+- **Verificar en dev (uvicorn + docs):**
+  ```powershell
+  .\.venv\Scripts\python.exe -m pip install -r python\requirements.txt
+  # forma 1 (uvicorn directo; dev-environment.md §9):
+  .\.venv\Scripts\python.exe -m uvicorn api.app.main:app --port 8000
+  # forma 2 (CLI de FastAPI, mismo resultado):
+  .\.venv\Scripts\python.exe -m fastapi run api/app/main.py --port 8000
+  # navegador: http://localhost:8000/docs (OpenAPI) y:
+  #   http://localhost:8000/api/health        → {"status":"ok","database":"ok"}
+  #   http://localhost:8000/api/crimes/summary → 19.642, ventana sept-2026
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint6-api-scaffold develop
+  git add api/ Makefile python/requirements.txt .github/workflows/ci.yml docs/
+  git commit -m "feat: fastapi scaffold with health and crimes summary"
+  git push -u origin feature/sprint6-api-scaffold
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 2 — Endpoints analíticos (trends / by-type / by-community-area) `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `api/app/schemas/crimes.py` — MonthlyTrend / CrimeTypeCount / AreaRanking
+  - `api/app/services/crimes.py` — monthly_trends / crime_types / area_ranking
+  - `api/app/routers/crimes.py` — 3 endpoints nuevos
+  - `api/tests/test_crimes_analytics.py` — 6 tests
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 9 passed (3 + 6)
+  - `pytest python/tests -q` → 142 passed
+  - `ruff check python api` → All checks passed
+- **Verificar en dev (uvicorn + docs):**
+  ```powershell
+  .\.venv\Scripts\python.exe -m uvicorn api.app.main:app --port 8000
+  # http://localhost:8000/docs y:
+  #   /api/crimes/trends          → 1 fila (sept-2026, 19.642)
+  #   /api/crimes/by-type         → THEFT/BATTERY/... con shares reales
+  #   /api/crimes/by-community-area → ranking con nombres y rank
+  #   ?limit=5 funciona en by-type y by-community-area
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint6-api-analytics develop
+  git add api/ docs/
+  git commit -m "feat: crimes analytics endpoints (trends, by-type, by-area)"
+  git push -u origin feature/sprint6-api-analytics
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 3 — Endpoint /api/crimes/hotspots `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `api/app/schemas/crimes.py` — HotspotRun / HotspotCluster / HotspotsResponse
+  - `api/app/services/crimes.py` — hotspots() (última corrida o run_key)
+  - `api/app/routers/crimes.py` — endpoint (404 si no hay corridas)
+  - `api/tests/test_crimes_hotspots.py` — 4 tests
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 13 passed (9 + 4)
+  - `pytest python/tests -q` → 142 passed
+  - `ruff check python api` → All checks passed
+- **Verificar en dev (con tu corrida real del notebook 04):**
+  ```powershell
+  .\.venv\Scripts\python.exe -m uvicorn api.app.main:app --port 8000
+  # http://localhost:8000/api/crimes/hotspots
+  # → la corrida (eps 200/min 25) + 51 clusters ordenados por volumen
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint6-api-hotspots develop
+  git add api/ docs/
+  git commit -m "feat: hotspots endpoint reading dbscan runs"
+  git push -u origin feature/sprint6-api-hotspots
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 4 — Endpoint /api/reports/weekly `[x]` (merged en develop)
+
+- **Objetos revisables:**
+  - `api/app/routers/reports.py` — router /api/reports (nuevo)
+  - `api/app/services/crimes.py` — weekly_report() (ventana data-driven)
+  - `api/app/schemas/crimes.py` — WeeklyReport + filas
+  - `api/tests/test_reports_weekly.py` — 3 tests
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 16 passed (13 + 3)
+  - `pytest python/tests -q` → 142 passed
+  - `ruff check python api` → All checks passed
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint6-api-reports develop
+  git add api/ docs/
+  git commit -m "feat: weekly report endpoint for power automate"
+  git push -u origin feature/sprint6-api-reports
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
 ### Fix 2 — ruff.toml: notebooks fuera del lint `[ ]` (pendiente de tu verificación)
 
 - **Objetos revisables:**

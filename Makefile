@@ -13,10 +13,10 @@
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down migrate seed load-warehouse views test-up test-down test-unit test-integration lint
+.PHONY: help up down migrate seed load-warehouse views test-up test-down test-unit test-integration test-api lint
 
 help:
-	@echo "Targets: up down migrate seed load-warehouse views test-up test-down test-unit test-integration lint"
+	@echo "Targets: up down migrate seed load-warehouse views test-up test-down test-unit test-integration test-api lint"
 
 up:
 	docker compose up -d
@@ -56,5 +56,8 @@ test-unit:
 test-integration:
 	pytest python/tests/integration -v
 
+test-api:
+	pytest api/tests -v
+
 lint:
-	ruff check python
+	ruff check python api

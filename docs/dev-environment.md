@@ -177,3 +177,27 @@ git push -u origin main
 A partir de aquí, **cada paso revisable = un commit** con formato Conventional
 Commits (`feat:`, `fix:`, `docs:`, `chore:`...). El archivo
 `.github/workflows/ci.yml` se añade en el Sprint 1.
+
+## 9. Levantar el servidor de la API (FastAPI + uvicorn)
+
+FastAPI solo **define** la app; el que escucha el puerto HTTP es el servidor
+ASGI (uvicorn). Dos formas equivalentes (desde la raíz del repo, venv activo):
+
+```powershell
+# Forma 1 — vía uvicorn directo (la del Makefile/checklist):
+# api.app.main:app = "el objeto app dentro del módulo api/app/main.py"
+python -m uvicorn api.app.main:app --port 8000          # normal
+python -m uvicorn api.app.main:app --reload --port 8000 # recarga automática al editar (dev)
+
+# Forma 2 — vía el CLI de FastAPI (envoltorio de uvicorn; requiere
+# el extra [standard] — requirements.txt ya lo incluye):
+python -m fastapi run api/app/main.py --port 8000
+python -m fastapi dev api/app/main.py                   # equivalente a --reload
+```
+
+- Documentación interactiva (OpenAPI): http://localhost:8000/docs
+- Los tests (`api/tests`) NO necesitan servidor: `TestClient` simula los
+  requests en memoria.
+- El tercer camino (menos usado): dentro de código, `uvicorn.run(create_app(), ...)`.
+- En "producción" se escala con workers (`uvicorn --workers 4`); para dev
+  basta un worker.

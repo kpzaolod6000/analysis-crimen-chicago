@@ -26,6 +26,148 @@ Reglas:
 
 ---
 
+## [2026-10-21] Sprint 6 — Cierre del sprint (bump 0.6.0)
+
+**Qué:** Sprint 6 marcado `[x]` en `docs/plan.md` y estado del README
+actualizado (Sprint 6 hecho, próximo Sprint 7). API completa: 6 endpoints
+(health, summary, trends, by-type, by-community-area, hotspots,
+reports/weekly) con OpenAPI en `/docs`, 16 tests de TestClient contra la
+DB de pruebas y paso `test-api` en el CI.
+**Por qué:** cierre de sprint según git-workflow §5. El backend del MVP
+está completo: las vistas del warehouse y los hotspots ya son
+consumibles; sigue el frontend (Sprint 7).
+**Archivos:**
+- `docs/plan.md` — Sprint 6 `[x]`
+- `README.md` — §Estado
+- `docs/changelog.md`, `docs/verification.md` — registro
+**Tests:**
+- `pytest api/tests -q` → 16 passed · `pytest python/tests -q` → 142
+  passed (total 158) · ruff limpio
+**Cómo verificar:**
+- `docs/plan.md` muestra Sprint 6 `[x]`; tras el release: `git tag -l`
+  lista `v0.6.0`.
+
+## [2026-10-17] Sprint 6 · Paso 4 — Endpoint /api/reports/weekly (cierre de ítems)
+
+**Qué:** router `reports.py` nuevo (incluido en main) con
+`GET /api/reports/weekly` — payload JSON para Power Automate: ventana
+data-driven (end = max full_date del fact, start = end−6; 404 si el
+warehouse está vacío), resumen de la semana (crímenes/arrests/tasa),
+`crime_change_pct` vs los 7 días previos (None si la base es 0), top 5
+tipos (share dentro de la ventana), top 5 áreas con nombres y top 3
+hotspots de la última corrida DBSCAN (vacío si no hay). 3 tests
+(test_reports_weekly.py): cuerpo exacto con la fixture (3 crímenes,
+semana previa vacía → None), 404 con fact vacío (truncate + restore via
+reload idempotente — solo fact: si truncara raw el reload no tendría
+fuente) y recuperabilidad del endpoint tras el restore.
+**Por qué:** último ítem del plan de Sprint 6 (endpoints + reporte
+semanal + tests). La ventana data-driven es la decisión clave: el reporte
+sema "los últimos 7 días DE DATOS" — igual en dev (1 mes) y con backfill
+completo; Power Automate no necesita pasar fechas.
+**Archivos:**
+- `api/app/schemas/crimes.py` — WeeklyReport + filas (tipos/áreas)
+- `api/app/services/crimes.py` — weekly_report()
+- `api/app/routers/reports.py` — router /api/reports (nuevo)
+- `api/app/main.py` — include_router(reports)
+- `api/tests/test_reports_weekly.py` — 3 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest api/tests -q` → 16 passed (13 + 3) · `pytest python/tests -q` →
+  142 passed · `ruff check python api` → All checks passed
+**Cómo verificar:**
+- Checklist "Sprint 6 · Paso 4" en `docs/verification.md`.
+
+## [2026-10-17] Sprint 6 · Paso 3 — Endpoint /api/crimes/hotspots
+
+**Qué:** endpoint `GET /api/crimes/hotspots` (routers/services/schemas):
+devuelve la corrida DBSCAN guardada (última por defecto, `run_key` opcional
+ge=1) + sus clusters ordenados por volumen DESC — `HotspotsResponse`
+(HotspotRun + list[HotspotCluster]) leyendo `warehouse.hotspot_runs`/
+`hotspot_clusters` (005). 404 con mensaje si no hay corridas. 4 tests
+(test_crimes_hotspots.py): 404 sin corridas (estado base de la fixture),
+última corrida sembrada a mano (2 clusters de 120/40 pts, campos y orden
+exactos), run_key explícito y run_key inexistente → 404. Fix propio en el
+camino: `computed_at` era `str` y llega como `datetime` → schema ahora
+`datetime` (FastAPI serializa ISO).
+**Por qué:** cierra la cadena del Sprint 5 (clusters guardados) hacia el
+dashboard: el panel de hotspots consumirá este endpoint. `run_key` opcional
+habilita comparar corridas (proveniencia del Paso 5).
+**Archivos:**
+- `api/app/schemas/crimes.py` — HotspotRun / HotspotCluster / HotspotsResponse
+- `api/app/services/crimes.py` — hotspots()
+- `api/app/routers/crimes.py` — endpoint /hotspots
+- `api/tests/test_crimes_hotspots.py` — 4 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest api/tests -q` → 13 passed (9 + 4) · `pytest python/tests -q` →
+  142 passed · `ruff check python api` → All checks passed
+**Cómo verificar:**
+- Checklist "Sprint 6 · Paso 3" en `docs/verification.md` (pytest, ruff,
+  smoke: /api/crimes/hotspots con tu corrida real del notebook 04).
+
+## [2026-10-17] Sprint 6 · Paso 2 — Endpoints analíticos (trends / by-type / by-community-area)
+
+**Qué:** 3 endpoints nuevos en `routers/crimes.py` + sus services y schemas:
+`GET /api/crimes/trends` (tendencia mensual desde `vw_monthly_crimes`,
+mes más viejo→nuevo), `GET /api/crimes/by-type` (fact+dim_crime_type
+agrupado por primary_type con share_pct; empates alfabéticos, `limit`
+opcional 1..100) y `GET /api/crimes/by-community-area` (directo de
+`vw_area_crime_ranking` con rank ascendente y `limit` opcional). 6 tests
+nuevos (test_crimes_analytics.py) con la misma fixture: 1 mes exacto,
+tres tipos empatados alfabéticamente, dos áreas empatadas (share 50.0
+sobre las RANKEADAS — la fila sin área queda fuera), `limit` y `limit`
+inválido → 422.
+**Por qué:** ítem central del Sprint 6. La API no re-agrega: trends y
+ranking salen de las vistas del Sprint 4 (misma fuente que el dashboard);
+by-type agrega en SQL directo (no hay vista de tipos). `limit` paramétrico
+validado por FastAPI (Query ge/le) → 422 automático.
+**Archivos:**
+- `api/app/schemas/crimes.py` — MonthlyTrend / CrimeTypeCount / AreaRanking
+- `api/app/services/crimes.py` — monthly_trends / crime_types / area_ranking
+- `api/app/routers/crimes.py` — 3 endpoints nuevos
+- `api/tests/test_crimes_analytics.py` — 6 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest api/tests -q` → 9 passed (3 + 6) · `pytest python/tests -q` →
+  142 passed · `ruff check python api` → All checks passed
+**Cómo verificar:**
+- Checklist "Sprint 6 · Paso 2" en `docs/verification.md` (pytest, ruff,
+  smoke uvicorn de los 3 endpoints).
+
+## [2026-10-17] Sprint 6 · Paso 1 — Scaffold FastAPI (/health + /crimes/summary)
+
+**Qué:** paquete `api/app/` nuevo: `main.py` (factory `create_app()` +
+`app` para uvicorn), `db.py` (psycopg2 por request, env `API_POSTGRES_*`
+con defaults dev 5432; dependencia `Conn = Annotated[..., Depends(get_conn)]`
+— patrón que evita B008), `services/crimes.py` (SQL sobre la estrella),
+`schemas/crimes.py` (Pydantic) y routers `health` + `crimes`. Endpoints:
+`GET /api/health` (liveness + DB) y `GET /api/crimes/summary` (volumen,
+arrests, tasa, rango de fechas, tipos/áreas distintas). Tests propios:
+`api/tests/` (conftest mapea `TEST_POSTGRES_*`→`API_POSTGRES_*` con
+defaults 5433, aplica el stack completo y siembra 3 filas conocidas;
+TestClient) — 3 tests. Target `test-api` en el Makefile + paso nuevo en
+`ci.yml` + lint ampliado a `ruff check python api`.
+**Por qué:** primer paso del Sprint 6. Decisiones: conexión psycopg2
+(coherente con el repo, sin SQLAlchemy), app por factory (testable sin
+servidor), defaults de tests SIEMPRE a la DB de pruebas (la primera versión
+caía en dev — atrapado por el propio test con datos ajenos), y seed
+DESPUÉS del truncate porque el loader no repobla `dim_community_area`
+(diseño del seed: ella la posee). SQL inválido mío (`FILTER` sobre
+agregada) corregido a `CASE` — atrapado por el test antes de pushear.
+**Archivos:**
+- `python/requirements.txt` — fastapi[standard] (CLI incluido)/uvicorn/httpx
+- `api/app/{__init__,main,db}.py`, `api/app/routers/{__init__,health,crimes}.py`,
+  `api/app/schemas/{__init__,crimes}.py`, `api/app/services/{__init__,crimes}.py` — app (nueva)
+- `api/tests/{conftest,test_health,test_crimes_summary}.py` — tests (nuevos)
+- `Makefile` — `test-api` + lint ampliado; `.github/workflows/ci.yml` — paso API
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest api/tests -q` → 3 passed · `pytest python/tests -q` → 142
+  passed (suite sin cambios) · `ruff check python api` → All checks passed
+**Cómo verificar:**
+- Checklist "Sprint 6 · Paso 1" en `docs/verification.md` (pytest ×2,
+  ruff, uvicorn dev + /docs + /api/health + /api/crimes/summary reales).
+
 ## [2026-10-17] Sprint 5 — Cierre del sprint (bump 0.5.0)
 
 **Qué:** Sprint 5 marcado `[x]` en `docs/plan.md` y estado del README
