@@ -724,6 +724,44 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
 
+---
+
+## Sprint 6 — FastAPI
+
+### Paso 1 — Scaffold API (/health + /crimes/summary) `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `api/app/` — main (factory), db (Conn inyectada), services (SQL),
+    schemas (Pydantic), routers health + crimes
+  - `api/tests/` — conftest (env TEST→API_POSTGRES, defaults 5433, stack
+    completo + 3 filas) + test_health (1) + test_crimes_summary (2)
+  - `Makefile` — `test-api` + lint `ruff check python api`
+  - `.github/workflows/ci.yml` — paso "API tests"
+- **Verificar contenido:**
+  - `docker compose -f docker-compose.test.yml up -d` (si no está levantada)
+  - `pytest api/tests -q` → 3 passed
+  - `pytest python/tests -q` → 142 passed (suite sin cambios)
+  - `ruff check python api` → All checks passed
+- **Verificar en dev (uvicorn + docs):**
+  ```powershell
+  .\.venv\Scripts\python.exe -m pip install -r python\requirements.txt
+  # forma 1 (uvicorn directo; dev-environment.md §9):
+  .\.venv\Scripts\python.exe -m uvicorn api.app.main:app --port 8000
+  # forma 2 (CLI de FastAPI, mismo resultado):
+  .\.venv\Scripts\python.exe -m fastapi run api/app/main.py --port 8000
+  # navegador: http://localhost:8000/docs (OpenAPI) y:
+  #   http://localhost:8000/api/health        → {"status":"ok","database":"ok"}
+  #   http://localhost:8000/api/crimes/summary → 19.642, ventana sept-2026
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint6-api-scaffold develop
+  git add api/ Makefile python/requirements.txt .github/workflows/ci.yml docs/
+  git commit -m "feat: fastapi scaffold with health and crimes summary"
+  git push -u origin feature/sprint6-api-scaffold
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
 ### Fix 2 — ruff.toml: notebooks fuera del lint `[ ]` (pendiente de tu verificación)
 
 - **Objetos revisables:**

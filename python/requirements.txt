@@ -19,3 +19,9 @@ matplotlib>=3.10
 # runtime de notebooks (kernel de Jupyter sobre el .venv)
 ipykernel>=6.29
 jupyterlab>=4.3
+
+# API (Sprint 6: FastAPI + servidor + cliente de tests)
+# [standard] agrega el CLI (fastapi run/dev) + uvicorn con watchfiles (--reload)
+fastapi[standard]>=0.115
+uvicorn>=0.30
+httpx>=0.27

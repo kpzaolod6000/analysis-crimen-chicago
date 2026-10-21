@@ -26,6 +26,40 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 6 · Paso 1 — Scaffold FastAPI (/health + /crimes/summary)
+
+**Qué:** paquete `api/app/` nuevo: `main.py` (factory `create_app()` +
+`app` para uvicorn), `db.py` (psycopg2 por request, env `API_POSTGRES_*`
+con defaults dev 5432; dependencia `Conn = Annotated[..., Depends(get_conn)]`
+— patrón que evita B008), `services/crimes.py` (SQL sobre la estrella),
+`schemas/crimes.py` (Pydantic) y routers `health` + `crimes`. Endpoints:
+`GET /api/health` (liveness + DB) y `GET /api/crimes/summary` (volumen,
+arrests, tasa, rango de fechas, tipos/áreas distintas). Tests propios:
+`api/tests/` (conftest mapea `TEST_POSTGRES_*`→`API_POSTGRES_*` con
+defaults 5433, aplica el stack completo y siembra 3 filas conocidas;
+TestClient) — 3 tests. Target `test-api` en el Makefile + paso nuevo en
+`ci.yml` + lint ampliado a `ruff check python api`.
+**Por qué:** primer paso del Sprint 6. Decisiones: conexión psycopg2
+(coherente con el repo, sin SQLAlchemy), app por factory (testable sin
+servidor), defaults de tests SIEMPRE a la DB de pruebas (la primera versión
+caía en dev — atrapado por el propio test con datos ajenos), y seed
+DESPUÉS del truncate porque el loader no repobla `dim_community_area`
+(diseño del seed: ella la posee). SQL inválido mío (`FILTER` sobre
+agregada) corregido a `CASE` — atrapado por el test antes de pushear.
+**Archivos:**
+- `python/requirements.txt` — fastapi[standard] (CLI incluido)/uvicorn/httpx
+- `api/app/{__init__,main,db}.py`, `api/app/routers/{__init__,health,crimes}.py`,
+  `api/app/schemas/{__init__,crimes}.py`, `api/app/services/{__init__,crimes}.py` — app (nueva)
+- `api/tests/{conftest,test_health,test_crimes_summary}.py` — tests (nuevos)
+- `Makefile` — `test-api` + lint ampliado; `.github/workflows/ci.yml` — paso API
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest api/tests -q` → 3 passed · `pytest python/tests -q` → 142
+  passed (suite sin cambios) · `ruff check python api` → All checks passed
+**Cómo verificar:**
+- Checklist "Sprint 6 · Paso 1" en `docs/verification.md` (pytest ×2,
+  ruff, uvicorn dev + /docs + /api/health + /api/crimes/summary reales).
+
 ## [2026-10-17] Sprint 5 — Cierre del sprint (bump 0.5.0)
 
 **Qué:** Sprint 5 marcado `[x]` en `docs/plan.md` y estado del README
