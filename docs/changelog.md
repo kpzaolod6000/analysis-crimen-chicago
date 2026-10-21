@@ -26,6 +26,31 @@ Reglas:
 
 ---
 
+## [2026-10-17] Sprint 5 · Paso 6 — Notebook 05_hotspot_model (cierre de hotspots observados)
+
+**Qué:** `python/notebooks/05_hotspot_model.ipynb` (11 celdas): consolida
+los hotspots OBSERVADOS desde dos miradas — (a) serie semanal por área
+con `features.weekly` (grilla 77×5 con los datos reales de dev, umbral q90
+= 110.6 crímenes/semana → 39 área-semanas hotspot, 10.1%) y persistencia
+de área (¿cuántas semanas seguidas es hotspot cada zona?, top 12 con
+nombres); (b) contraste con los clusters DBSCAN guardados (queries a
+`warehouse.hotspot_runs`/`hotspot_clusters`, corrección si no hay runs).
+Celda de conclusiones orientada al panel observado-vs-predicho del
+dashboard.
+**Por qué:** último paso del Sprint 5. Une los productos del sprint
+(weekly.py + DBSCAN en DB) en la vista que el dashboard consumirá; deja
+explícito que el modelo Nivel 2 (Sprint 10) ya tiene sus targets listos
+(`crime_count_next_week`, `hotspot_next_week` en `build_features`).
+**Archivos:**
+- `python/notebooks/05_hotspot_model.ipynb` — notebook (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite (notebook analítico). Las 5 celdas se ejecutaron
+  headless contra dev (eventos 19.602 → grid 385 filas; 10.1% hotspots).
+  Suite sigue en 142 passed.
+**Cómo verificar:**
+- Checklist "Sprint 5 · Paso 6" en `docs/verification.md`.
+
 ## [2026-10-17] Sprint 5 · Paso 5 (parte 2) — Notebook 04_dbscan_hotspots
 
 **Qué:** `python/notebooks/04_dbscan_hotspots.ipynb` (16 celdas): explora el
