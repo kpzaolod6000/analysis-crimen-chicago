@@ -237,11 +237,15 @@ Cada sprint incluye sus tests (ver [docs/testing.md](testing.md)).
 - Resultado: SQL analítico con window functions verificado (staging →
   warehouse → vistas lista para consumir desde la API; release `v0.4.0`).
 
-### Sprint 5 — Python EDA + ML Nivel 1 `[ ]`
-- [ ] Notebooks 01–05 (data quality → hotspots)
-- [ ] `src/features/` (features semanales con lags) + tests unit
-- [ ] DBSCAN → clusters → guardar en PostgreSQL
-- Resultado: hotspots observados calculados y almacenados.
+### Sprint 5 — Python EDA + ML Nivel 1 `[x]`
+- [x] Notebooks 01–05 (data quality → temporal → espacial → DBSCAN →
+      hotspots observados; kernel `chicago-crimes` del venv)
+- [x] `src/features/` (features semanales con lags 1/2/4/8/52 + targets) +
+      18 tests unit
+- [x] DBSCAN (haversine, eps en metros) → clusters guardados en
+      PostgreSQL (`005_hotspot_clusters.sql`, append-only por corrida)
+- Resultado: hotspots observados calculados y almacenados (grid 77×5,
+  q90 = 110.6/semana → 10.1% área-semanas hotspot; release `v0.5.0`).
 
 ### Sprint 6 — FastAPI `[ ]`
 - [ ] Endpoints: `/api/crimes/summary|trends|by-type|by-community-area|hotspots`

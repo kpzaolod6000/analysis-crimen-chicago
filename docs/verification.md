@@ -703,7 +703,7 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
 
-### Paso 6 — Notebook 05_hotspot_model `[ ]` (pendiente de tu verificación)
+### Paso 6 — Notebook 05_hotspot_model `[x]` (merged en develop)
 
 - **Objetos revisables:**
   - `python/notebooks/05_hotspot_model.ipynb` — hotspots observados:
@@ -712,16 +712,9 @@ registro histórico de `docs/changelog.md` y de la estrategia de
 - **Verificar contenido:**
   - `pytest python/tests -q` → 142 passed (suite sin cambios)
   - `ruff check python` → All checks passed
-  - Las 5 celdas ya se ejecutaron headless contra dev (asistente):
+  - Las 5 celdas se ejecutaron headless contra dev (asistente):
     eventos 19.602 → grid 385 (77 áreas × 5 semanas) · umbral 110.6 ·
     39 hotspots (10.1%)
-- **Verificar (tu parte):**
-  ```powershell
-  # VS Code → 05_hotspot_model.ipynb → Run All
-  # esperado: top áreas persistentes con nombres (Austin/Loop...) y la
-  # tabla de tu corrida DBSCAN de la sección 4
-  docker compose exec postgres psql -U postgres -d chicago_crimes -c "SELECT count(*) FROM warehouse.hotspot_runs;"
-  ```
 - **Git:**
   ```powershell
   git switch -c feature/sprint5-nb05-hotspot develop
@@ -729,7 +722,6 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git commit -m "feat: notebook 05 observed hotspots closing sprint 5"
   git push -u origin feature/sprint5-nb05-hotspot
   # CI verde (checklist §10.3) → merge --no-ff a develop
-  # luego: cierre Sprint 5 + release v0.5.0 (§9)
   ```
 
 ### Fix 2 — ruff.toml: notebooks fuera del lint `[ ]` (pendiente de tu verificación)
