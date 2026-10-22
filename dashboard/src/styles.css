@@ -1,0 +1,184 @@
+/* Chicago Crimes Dashboard — Sprint 7 */
+:root {
+  --bg: #0f1117;
+  --panel: #1a1d27;
+  --text: #e8eaf0;
+  --muted: #9aa1b2;
+  --accent: #4fc3f7;
+  --danger: #ef5350;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header { padding: 1rem 2rem; border-bottom: 1px solid #2a2e3a; }
+header h1 { margin: 0; font-size: 1.4rem; }
+.subtitle { margin: 0.2rem 0 0; color: var(--muted); font-size: 0.85rem; }
+
+main { padding: 1rem 2rem 3rem; max-width: 1200px; margin: 0 auto; }
+
+section { margin-top: 2rem; }
+section h2 { font-size: 1.05rem; color: var(--muted); font-weight: 500; }
+
+/* filter bar (Sprint 7 Paso 5) */
+#filters { margin-top: 1rem; }
+.filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+}
+.filters-bar label { color: var(--muted); font-size: 0.8rem; }
+.filters-bar select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid #3a4050;
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  margin-left: 0.3rem;
+  font-size: 0.8rem;
+}
+.filter-clear {
+  margin-left: auto;
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+.filter-clear:hover { background: rgba(239, 83, 80, 0.15); }
+
+/* KPI cards */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+.kpi-card {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+}
+.kpi-value { font-size: 1.8rem; font-weight: 600; color: var(--accent); }
+.kpi-label { color: var(--muted); font-size: 0.8rem; margin-top: 0.2rem; }
+.kpi-sub { color: var(--muted); font-size: 0.75rem; margin-top: 0.4rem; }
+
+.chart-placeholder {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 2rem;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+/* line chart (trends) */
+#trends-chart { position: relative; }
+.trend-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.trend-area { fill: rgba(79, 195, 247, 0.12); }
+.trend-marker { fill: var(--accent); stroke: var(--bg); stroke-width: 2; }
+.axis-x text, .axis-y text { fill: var(--muted); font-size: 11px; }
+.axis-x line, .axis-y line, .axis-x path, .axis-y path { stroke: #3a4050; }
+.chart-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--panel);
+  border: 1px solid #3a4050;
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.78rem;
+  transform: translate(-50%, -120%);
+  white-space: nowrap;
+  z-index: 5;
+}
+.chart-note {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 2rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* heatmap day x hour */
+#heatmap-chart { position: relative; }
+.day-label { fill: var(--text); font-size: 11px; font-weight: 500; }
+.hour-label { fill: var(--muted); font-size: 10px; }
+#heatmap-chart rect { transition: fill 0.1s; }
+
+/* mapas (Sprint 7 Paso 4 + toggle Paso 7) */
+#map-chart { position: relative; }
+.area-shape { stroke: #0f1117; stroke-width: 0.7; cursor: pointer; }
+.area-hover { stroke: var(--accent) !important; stroke-width: 1.6 !important; }
+.area-outline {
+  fill: none;
+  stroke: rgba(154, 161, 178, 0.35);   /* esqueleto legible sobre el fondo */
+  stroke-width: 0.8;
+  cursor: pointer;
+  /* fill none => visiblePainted solo dispara en el TRAZO (bordes);
+     "all" captura el cursor en el interior también */
+  pointer-events: all;
+}
+.map-toolbar {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+.map-mode-btn {
+  background: var(--panel);
+  color: var(--muted);
+  border: 1px solid #3a4050;
+  border-radius: 6px;
+  padding: 0.3rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+.map-mode-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.map-mode-btn:hover { color: var(--text); }
+
+/* hotspots panel (Sprint 7 Paso 6) */
+.run-info { color: var(--muted); font-size: 0.85rem; margin: 0 0 0.7rem; }
+.run-info strong { color: var(--text); }
+.run-info .muted { color: var(--muted); }
+.hotspots-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.hotspots-table th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 500;
+  border-bottom: 1px solid #3a4050;
+  padding: 0.35rem 0.6rem;
+}
+.hotspots-table td {
+  padding: 0.35rem 0.6rem;
+  color: var(--text);
+  border-bottom: 1px solid #22262f;
+}
+.hotspots-table td .highlighted { color: var(--accent); }
+.hotspot-marker { pointer-events: auto; }
+
+.api-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+}

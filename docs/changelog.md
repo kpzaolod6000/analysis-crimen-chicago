@@ -26,6 +26,304 @@ Reglas:
 
 ---
 
+## [2026-10-22] Sprint 7 — Cierre del sprint (bump 0.7.0)
+
+**Qué:** Sprint 7 marcado `[x]` en `docs/plan.md` y estado del README
+actualizado (Sprint 7 hecho, próximo Sprint 8). El dashboard quedó
+completo: KPIs, line chart, heatmap (leyenda incluida), mapa con DOS
+modos (coroplético / bubble de hotspots con barra de intensidad), barra
+de filtros y panel de hotspots — todo consumiendo FastAPI, el frontend
+nunca toca PostgreSQL directo.
+**Por qué:** cierre de sprint según git-workflow §5. El MVP visual
+(plan §10) está completo: Socrata → n8n → PostgreSQL → SQL views →
+FastAPI → D3. Los pasos 4-7 absorbieron feedback en vivo del usuario
+(bubble map, tooltips, escala, leyenda).
+**Archivos:**
+- `docs/plan.md` — Sprint 7 `[x]`
+- `README.md` — §Estado
+- `docs/changelog.md`, `docs/verification.md` — registro
+**Tests:**
+- `pytest api/tests -q` → 27 passed · `pytest python/tests -q` → 142
+  passed (total 169) · `npm run build` OK (dashboard). E2E automático
+  llega en Sprint 8 (este sprint se verificó visualmente, en vivo).
+**Cómo verificar:**
+- `docs/plan.md` muestra Sprint 7 `[x]`; tras el release: `git tag -l`
+  lista `v0.7.0`.
+
+## [2026-10-22] Sprint 7 · Paso 7 — Toggle de mapas: coroplético + bubble map
+
+**Qué:** `dashboard/src/map.js` refactorizado con DOS vistas y toggle
+(botones "Choropleth"/"Bubble map" sobre el mapa):
+- **Choropleth** (anterior): área entera coloreada por volumen √.
+- **Bubble map** (a pedido del usuario): círculos en los centroides
+  (`d3.geoCentroid` runtime, sin tocar la API), radio √ del conteo
+  (2→20 px), relleno magma; áreas sin crímenes = punto gris pequeño.
+  Los anillos de hotspots viven SOLO en este modo (capa puntual sobre
+  capa puntual — el coroplético queda limpio; feedback de que los rings
+  son un snapshot sin filtros).
+- Hover/tooltip compartidos (helper `bindAreaHover`); el re-render del
+  toggle es self-contained (`lastFilters` module-level) y tras el cambio
+  se re-dibujan los anillos vía callback `setOnModeChange` (main.js).
+**Por qué:** el usuario reportó que los anillos sobre el coroplético
+filtrado mezclaban lecturas incomparables (anillos = snapshot sin filtros,
+colores = datos filtrados) y propuso bubble map: con counts 1→927 el
+tamaño del círculo es una codificación más honesta que el área coloreada.
+Ambos mapas comparten base (proyección/geojson/tooltip) — el toggle no
+duplica código.
+**Fixes del paso (feedback del usuario):** (a) "¿qué son los círculos
+punteados?" → son los anillos de clusters DBSCAN (radio ∝ volumen);
+(b) el bubble map se veía "sin esqueleto" → se dibuja el outline de las
+77 áreas debajo de las burbujas (hover/también en los outlines);
+(c) tooltips en burbujas Y áreas: el hover usaba `.attr("class", ...)`
+que REEMPLAZABA la lista de clases (pisaba `area-bubble`) → refactor del
+helper a `classed()` (preserva) + CSS `!important` en el highlight para
+ganarle al fill/stroke inline; (d) los bordes respondían pero no el
+interior de las áreas → `fill: none` + default visiblePainted solo
+captura el trazo → `pointer-events: all` en los outlines, y el
+`feature.properties` de los wrappers de burbuja se lee vía `featureOf`
+(TypeError silencioso en cada hover de burbuja); (e) hotspots con la
+técnica bubble map COMPLETA: círculos RELLENOS con escala **Reds** por
+volumen (doble codificación: radio √ + color) — sin anillos punteados;
+(f) bubble map = SOLO hotspots (las burbujas por área perdían relevancia,
+feedback del usuario): esqueleto de referencia + círculos de clusters;
+(g) **barra vertical de intensidad** al lado derecho del mapa (espacio
+del lago, sin expandir viewBox): gradient Reds 0→maxPoints + axisRight
+con ticks formateados + hover sobre la barra con SU tooltip ("≈ N
+points" a esa altura via valueAt.invert);
+(h) ajuste final del usuario: tooltip de la barra QUITADO (los tooltips
+viven en cada hotspot via <title> nativo) y relleno más transparente
+(fill-opacity 0.45, estilo bubble map clásico).
+**Archivos:**
+- `dashboard/src/map.js` — refactor con 2 modos + toolbar + overlay guard
+- `dashboard/src/main.js` — setOnModeChange
+- `dashboard/src/styles.css` — toolbar
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite automatizada (frontend). Build OK (125 KB).
+  Suite: api 27 · python 142 · ruff limpio (sin cambios)
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 7" en `docs/verification.md`.
+
+## [2026-10-22] Sprint 7 · Paso 6 — Panel de hotspots (hotspots.js + anillos en el mapa)
+
+**Qué:** `dashboard/src/hotspots.js` (nuevo): panel "Hotspots (observed)"
+que lee `/api/crimes/hotspots` (última corrida) y renderiza (1) header de
+proveniencia (run_key, eps m, min_samples, clusters, noise) y (2) tabla
+top-10 por volumen (label, puntos, centroide); (3) superpone **anillos**
+sobre el mapa (`renderHotspotMarkers` en map.js: círculos punteados rojos
+en los centroides, radio √ del volumen, tooltip nativo `<title>`). Sin
+corridas: mensaje útil ("run notebook 04 first") — 404 manejado; con API
+caída, mensaje de error. main.js: mapa → cadena con renderHotspots (los
+anillos necesitan el svg del mapa); el panel NO usa filtros (los clusters
+son snapshots precalculados). Fix menor propio: selector CSS `.hotspots-panel`
+clase→id (`#hotspots-panel`), y la var de proyección module-level para el
+overlay (reescrita en cada re-render del mapa).
+**Por qué:** último ítem del plan de Sprint 7 ("panel hotspots observado
+vs predicho"): el observado vive acá; el predicho se sumará en Sprint 10
+cuando exista el modelo Nivel 2. Data-driven total: sin corridas, no hay
+panel fingido.
+**Archivos:**
+- `dashboard/src/hotspots.js` — panel (nuevo)
+- `dashboard/src/map.js` — renderHotspotMarkers + estado module-level
+- `dashboard/src/main.js`, `index.html`, `styles.css` — wiring
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite automatizada (frontend; E2E Sprint 8). Verificación en
+  vivo manual. Suite: `api` 27 passed · `python` 142 passed · ruff limpio
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 6" en `docs/verification.md`.
+
+## [2026-10-22] Sprint 7 · Paso 5 (parte 2) — Filter bar del dashboard (filters.js)
+
+**Qué:** `dashboard/src/filters.js` nuevo: barra con 4 selects (Type /
+Year / Month / Area) + botón "Clear filters". Las opciones salen de la
+propia API (top 100 tipos, años presentes en trends, meses fijos, las 77
+áreas con nombre) y quedan estables sin filtros. Cada cambio dispara
+`onChange(filters)` y main.js re-renderiza TODO el dashboard (kpis,
+trends, heatmap, mapa) con los filtros activos. Refactor mínimo: los 4
+componentes + api.js ahora aceptan `filters` (buildQuery omite
+null/undefined y concatena el resto).
+**Por qué:** cierra el ítem "filtros (tipo, año, mes, área)" del plan.
+Los componentes no saben del estado global: reciben el objeto filters y
+consultan — main.js es dueño del estado (simple y testeable en E2E).
+**Archivos:**
+- `dashboard/src/filters.js` — barra (nuevo)
+- `dashboard/src/api.js` — buildQuery + firmas con filters
+- `dashboard/src/{kpis,trends,heatmap,map}.js` — firma con filters
+- `dashboard/src/main.js`, `index.html`, `styles.css` — wiring
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- La capa API ya está cubierta (27 passed incl. 8 de filtros). Visual
+  (manual): filtrar THEFT → KPIs cambian a 4.191/8.3% y el mapa/heatmap
+  se recolorean; Clear filters → estado base.
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 5 parte 2" en `docs/verification.md`.
+
+## [2026-10-22] Sprint 7 · Paso 5 (parte 1) — Filtros en la API (tipo/año/mes/área)
+
+**Qué:** los endpoints analíticos (summary, trends, by-type,
+by-community-area, by-hour) aceptan query params `primary_type`,
+`year` (≥2001), `month` (1-12) y `community_area` (1-77), validados por
+FastAPI (422 automático). Servicios: helper `_where()` inyecta condiciones
+con bindings `%s` (nunca interpolación); las vistas no soportan filtros →
+trends/by-type/by-area/by-hour se recalculan sobre fact+dims con el MISMO
+SQL base de las vistas; reglas de sentido: by-type ignora su propia
+dimensión y by-area ignora community_area (rank-of-one). Fix propio: con
+filtros vacíos la división 0/0 explotaba a pesar de COALESCE →
+`CASE WHEN count(*) > 0 ... ELSE 0`. 8 tests nuevos
+(test_crimes_filters.py) hand-computed: THEFT → 1/1/100%, year 2025 →
+todo en 0 (rate 0.0 no null), BATTERY → solo área 41 con share 100,
+área 22 → heatmap solo Tue 10h, month 13 → 422. Smoke real: THEFT →
+4.191/347/8.3% en dev; year 2025 → vacío limpio.
+**Por qué:** primer paso de los filtros del plan (ítem "filtros tipo/año/
+mes/área"): la API debe poder servir el dashboard filtrado sin duplicar
+vistas por combinación. hotspots/reports quedan SIN filtros (son
+snapshots precalculados; se documenta en el router).
+**Archivos:**
+- `api/app/services/crimes.py` — `_where`/`_filter_params` + servicios con filtros
+- `api/app/routers/crimes.py` — params en los 5 endpoints analíticos
+- `api/tests/test_crimes_filters.py` — 8 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest api/tests -q` → 27 passed (19 + 8) · `pytest python/tests -q` →
+  142 passed · ruff limpio
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 5" en `docs/verification.md`.
+
+## [2026-10-22] Sprint 7 · Paso 4 — Mapa coroplético por community area
+
+**Qué:** (a) asset `dashboard/public/community_areas.geojson` (2 MB): las
+77 áreas oficiales con MultiPolygon — descargado del export geojson del
+dataset geoespacial `igwz-8jzy` del portal (la vista `cauq-8yn6` NO expone
+geometría via resource: features con geometry NULL — descubierto al
+validar). (b) `dashboard/src/map.js`: d3.geoMercator fitExtent al
+viewport, path por feature coloreado con escala **sqrt** (counts muy
+sesgados 1..927; lineal dejaría 70 áreas como "cero"), hover con highlight
+stroke + tooltip (`32 · Loop · 679 crimes · 3.5% · rank 5`, nombre Title
+Case del API con fallback al UPPER del geojson), áreas sin crímenes en
+gris panel. Vite sirve el geojson desde public/. Limpio además los
+console.log de debug que el usuario había dejado en heatmap.js. Validado
+en vivo: build OK (119 KB) + Playwright hover real sobre el mapa.
+**Por qué:** ítem "mapa coroplético por community area" del plan. La
+geometría es asset estático (nunca vía API/DB) y los conteos SIEMPRE vía
+API — el mapa une las dos fuentes legítimas del dashboard. Escala sqrt
+elegida por el skew del count: sin ella el mapa se vería casi todo negro.
+**Archivos:**
+- `dashboard/public/community_areas.geojson` — geometría oficial (nuevo)
+- `dashboard/src/map.js` — componente (nuevo)
+- `dashboard/src/{api,main}.js`, `index.html`, `styles.css` — wiring
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite automatizada (frontend; E2E Sprint 8). Validación en
+  vivo: build + Playwright hover ("32 · Loop · 679 crimes · 3.5% · rank 5").
+- `pytest api/tests -q` → 19 passed · ruff → limpio (sin cambios)
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 4" en `docs/verification.md`.
+
+## [2026-10-22] Sprint 7 · Paso 3 — Heatmap día×hora (by-hour + heatmap.js)
+
+**Qué:** (a) endpoint nuevo `GET /api/crimes/by-hour` (service
+`day_hour()` + schema `DayHourRow`) leyendo `vw_day_hour` en orden ISO —
+el Sprint 6 no lo tenía y el heatmap lo necesita; test
+test_crimes_by_hour.py (3 celdas exactas de la fixture). Fix propio
+atrapado por el test: escribí "Sat 2026-09-20" y es **Sunday** (7) —
+esperados de memoria otra vez, la API estaba bien. (b)
+`dashboard/src/heatmap.js`: matriz 7×24 completa (zero-fill), escala
+secuencial magma, tooltip por celda (día+hora+conteo), labels de días
+ISO y horas cada 3; integrado a main.js + api.js (getByHour) + estilos.
+Validación en vivo: build OK (95 KB) + Playwright contra 5173 → heatmap
+con datos reales mostrando la firma urbana (madrugada oscura, tarde-noche
+caliente). Fix 1 del paso: el tooltip mostraba "undefined" — el datum de
+la fila es el ARRAY de conteos (no su índice), así que `dayNames.get()`
+fallaba; reescrito el binding con datos planos por rect
+({day, hour, count}) y verificado el hover ("Monday 13h · 110 crimes").
+Fix 2 del paso (a pedido del usuario): **leyenda de intensidad** — colorbar
+vertical a la derecha (defs/linearGradient de 11 stops + axisRight con
+ticks 0→max formateados). Su primer render no aparecía: un `h` usado fuera
+de su callback en los hour-labels reventaba el script ANTES de dibujar
+leyenda y labels de hora (el grid sobrevivía por orden de dibujo); fix del
+callback y verificado: colorbar + ticks + horas visibles (screenshot).
+Fix 3 (reportado por el usuario): los labels de día en negro invisibles
+sobre el fondo oscuro — el `.attr("class", "axis-x")` SOBREESCRIBÍA el
+class="day-label" (el segundo attr reemplaza al primero) y perdían el
+fill; además el selector `.axis-x text` de trends no los cubría. Fix:
+class único + CSS por separado (día en `--text` 11px bold, horas en
+`--muted`) — verificado con getComputedStyle + screenshot.
+**Por qué:** tercer paso del Sprint 7 (ítem "heatmap día×hora" del plan).
+La matriz completa (0 reales) viene del mismo principio del zero-fill de
+features/weekly: la celda sin datos ES un cero, no un hueco.
+**Archivos:**
+- `api/app/schemas/crimes.py` — DayHourRow; `api/app/services/crimes.py` — day_hour()
+- `api/app/routers/crimes.py` — endpoint /by-hour
+- `api/tests/test_crimes_by_hour.py` — 1 test (nuevo)
+- `dashboard/src/{api,heatmap,main}.js`, `index.html`, `styles.css`
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest api/tests -q` → 19 passed (18 + 1) · `pytest python/tests -q` →
+  142 passed · ruff limpio
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 3" en `docs/verification.md` (pytest, ruff,
+  smoke visual del heatmap con hover).
+
+## [2026-10-21] Sprint 7 · Paso 2 — Line chart de tendencias (trends.js)
+
+**Qué:** `dashboard/src/trends.js` nuevo: gráfico de línea mensual
+consumiendo `/api/crimes/trends` — SVG con ejes (meses %b %Y), línea
+curva monotone + área tenue, **hover** (tooltip flotante + marcador:
+crímenes/arrestos/tasa del mes), **zoom del eje X** (d3.zoom, scaleExtent
+1-8; no-op con 1 punto) y degradación elegante: con <2 meses muestra el
+mensaje "Only 1 month loaded (September 2026, 19,642 crimes). Load the
+1-year window (Sprint 2 · Paso 3)…", sin datos muestra "No data", con API
+caída "API down". main.js llama renderTrends(); styles agrega
+tooltip/ejes/nota. Validado en vivo: build OK (86 KB gzip 29 KB) y
+Playwright contra 5173 → mensaje visible y KPIs intactos (screenshot).
+**Por qué:** segundo paso del Sprint 7 (ítem "line chart hover/zoom/brush"
+del plan). El zoom solo activa con datos multi-mes; el brush queda para
+cuando existan los datos que lo hagan útil (1 año cargado). La degradación
+elegante evita un SVG vacío confuso con la ventana actual de dev.
+**Archivos:**
+- `dashboard/src/trends.js` — chart (nuevo)
+- `dashboard/index.html` — placeholder reemplazado por contenedor real
+- `dashboard/src/main.js`, `dashboard/src/styles.css` — wiring + estilos
+- `.gitignore` — `.playwright-mcp/` (artefactos de validación)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite automatizada (frontend; E2E llega en Sprint 8).
+  Validación manual en vivo (asistente): build + Playwright.
+- `pytest api/tests -q` → 18 passed · ruff → limpio (sin cambios)
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 2" en `docs/verification.md` (dos terminales,
+  mensaje del chart con 1 mes; se llenará al cargar la ventana anual).
+
+## [2026-10-21] Sprint 7 · Paso 1 — Scaffold dashboard (Vite + D3 + KPI cards)
+
+**Qué:** paquete `dashboard/` nuevo: `package.json` (vite 7 + d3 7.9),
+`index.html` (shell con secciones: KPIs, trends, heatmap, mapa, hotspots —
+los charts llegan en pasos siguientes como placeholders), `src/api.js`
+(cliente de los 6 endpoints de Sprint 6; base URL `VITE_API_URL`, el
+dashboard NUNCA toca PostgreSQL directo), `src/kpis.js` (4 KPI cards con
+d3 data-join) + `src/main.js` + `styles.css` (dark theme) + `.gitignore`.
+En la API: `CORSMiddleware` (orígenes localhost 5173/4173, GET only) +
+2 tests de CORS (preflight permitido y origen desconocido → 400).
+Validación en vivo: build de producción OK (43 KB gzip 15 KB) y prueba
+real en navegador (Playwright): KPIs con datos reales de dev — 19.642
+crímenes (sept-2026), 14.5% arrest rate (2.850), 254 tipos, 77 áreas.
+**Por qué:** primer paso del Sprint 7. CORS es prerrequisito estructural
+(navegador 5173 → API 8000); el cliente centralizado en `api.js` es la
+única puerta al backend (regla del plan). Sin tests E2E todavía (Sprint 8):
+la verificación de este paso es manual + el test de CORS en la API.
+**Archivos:**
+- `dashboard/{package.json,index.html,.gitignore}`, `dashboard/src/{main,kpis,api}.js`,
+  `dashboard/src/styles.css` — dashboard (nuevo)
+- `api/app/main.py` — CORSMiddleware; `api/tests/test_cors.py` — 2 tests
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest api/tests -q` → 18 passed (16 + 2) · `pytest python/tests -q` →
+  142 passed · `ruff check python api` → limpio · `npm run build` → OK
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 1" en `docs/verification.md` (npm install,
+  dos servidores, KPIs visibles con los números reales).
+
 ## [2026-10-21] Sprint 6 — Cierre del sprint (bump 0.6.0)
 
 **Qué:** Sprint 6 marcado `[x]` en `docs/plan.md` y estado del README

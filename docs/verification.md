@@ -850,3 +850,221 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git add ruff.toml docs/
   git commit -m "chore: exclude notebooks from ruff lint (ruff.toml)"
   ```
+
+---
+
+## Sprint 7 — D3 Dashboard
+
+### Paso 1 — Scaffold + KPI cards `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `dashboard/` — package.json (vite 7 + d3), index.html (shell),
+    src/{main,kpis,api}.js, styles.css
+  - `api/app/main.py` — CORSMiddleware (localhost 5173/4173, GET)
+  - `api/tests/test_cors.py` — 2 tests (preflight + origen desconocido)
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 18 passed (16 + 2)
+  - `pytest python/tests -q` → 142 passed
+  - `ruff check python api` → All checks passed
+  - `cd dashboard; npm install; npm run build` → build OK
+- **Verificar en dev (dos terminales):**
+  ```powershell
+  # terminal 1 — API:
+  .\.venv\Scripts\python.exe -m uvicorn api.app.main:app --port 8000
+  # terminal 2 — dashboard (desde dashboard/):
+  npm run dev
+  # navegador: http://localhost:5173 → 4 KPI cards con datos reales:
+  #   19,642 Crimes · 14.5% Arrest rate · 254 Crime types · 77 Community areas
+  # si la API está caída: la card muestra "API down" (comportamiento esperado)
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-dashboard-scaffold develop
+  git add dashboard/ api/app/main.py api/tests/test_cors.py docs/
+  git commit -m "feat: dashboard scaffold with kpi cards and cors"
+  git push -u origin feature/sprint7-dashboard-scaffold
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 2 — Line chart de tendencias `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `dashboard/src/trends.js` — line chart (hover tooltip + zoom eje X +
+    degradación elegante con <2 meses)
+  - `dashboard/index.html`, `src/main.js`, `src/styles.css` — wiring
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 18 passed · `pytest python/tests -q` → 142
+  - `ruff check python api` → All checks passed
+  - `cd dashboard; npm run build` → build OK
+- **Verificar en dev (dos terminales, http://localhost:5173):**
+  ```powershell
+  # (API + Vite según Paso 1) → sección "Monthly trend"
+  ```
+  Esperado HOY (solo sept cargado): el mensaje "Only 1 month loaded
+  (September 2026, 19,642 crimes). Load the 1-year window (Sprint 2 ·
+  Paso 3)…" — NO un SVG vacío. Hover/zoom activos cuando haya 2+ meses.
+  Nota: para ver la línea real, correr la ventana de 1 año (checklist
+  Sprint 2 · Paso 3, workflow n8n) y recargar la página.
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-trends-chart develop
+  git add dashboard/ .gitignore docs/
+  git commit -m "feat: monthly trends line chart with hover and zoom"
+  git push -u origin feature/sprint7-trends-chart
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 3 — Heatmap día×hora `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `api/app/{services,routers,schemas}` — endpoint /api/crimes/by-hour
+    (nuevo: el Sprint 6 no lo tenía; el heatmap lo requiere)
+  - `dashboard/src/heatmap.js` — matriz 7×24, escala magma, tooltip por celda
+  - `api/tests/test_crimes_by_hour.py` — 1 test
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 19 passed (18 + 1)
+  - `pytest python/tests -q` → 142 passed
+  - `ruff check python api` → All checks passed
+  - `cd dashboard; npm run build` → build OK
+- **Verificar en dev (dos terminales → http://localhost:5173):**
+  ```powershell
+  # sección "Crime by day and hour": 7 filas (Mon..Sun) × 24 columnas
+  # hover en celda → tooltip con día/hora/conteo
+  # patrón real esperado: madrugada (0-5h) oscura, tarde-noche (12-23h) caliente
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-heatmap develop
+  git add api/ dashboard/ docs/
+  git commit -m "feat: day-hour heatmap with intensity legend"
+  git push -u origin feature/sprint7-heatmap
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 4 — Mapa coroplético por community area `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `dashboard/public/community_areas.geojson` — 77 áreas oficiales
+    (dataset `igwz-8jzy`, export geojson)
+  - `dashboard/src/map.js` — mercator + escala sqrt + hover/tooltip
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 19 passed · `pytest python/tests -q` → 142
+  - `ruff check python api` → All checks passed
+  - `cd dashboard; npm run build` → OK
+- **Verificar en dev (dos terminales → 5173):**
+  - La sección "Crime by community area" muestra la silueta de Chicago
+  - Hover en cualquier área: tooltip con número + nombre + crimes + share
+    + rank (ej. "32 · Loop · 679 crimes · 3.5% · rank 5") y highlight
+  - Colores: escala sqrt (distribución realista, no todo negro)
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-choropleth develop
+  git add dashboard/ docs/
+  git commit -m "feat: choropleth map by community area"
+  git push -u origin feature/sprint7-choropleth
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 5 (parte 1) — Filtros en la API `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `api/app/services/crimes.py` — `_where`/`_filter_params`; los 5
+    endpoints analíticos aceptan primary_type/year/month/community_area
+  - `api/tests/test_crimes_filters.py` — 8 tests
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 27 passed (19 + 8)
+  - `pytest python/tests -q` → 142 passed
+  - `ruff check python api` → All checks passed
+- **Verificar en dev (uvicorn + URLs filtradas):**
+  ```powershell
+  # /api/crimes/summary?primary_type=THEFT → 4.191/8.3% (real en dev)
+  # /api/crimes/summary?year=2025          → todo en 0, sin error
+  # /api/crimes/by-community-area?primary_type=THEFT → ranking solo THEFT
+  # /api/crimes/summary?month=13           → 422
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-api-filters develop
+  git add api/ docs/
+  git commit -m "feat: filter params on analytics endpoints"
+  git push -u origin feature/sprint7-api-filters
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 5 (parte 2) — Filter bar del dashboard `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `dashboard/src/filters.js` — 4 selects + Clear; opciones desde la API
+  - `dashboard/src/api.js` — buildQuery; componentes con firma `filters`
+  - `dashboard/src/main.js` — estado + re-render completo
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 27 passed · `pytest python/tests -q` → 142
+  - `ruff check python api` → All checks passed
+  - `cd dashboard; npm run build` → OK
+- **Verificar en dev (dos terminales → 5173):**
+  1. Type → THEFT: KPIs cambian a **4,191 crimes / 8.3%**; map y heatmap
+     se recolorean (trends queda con su nota de 1 mes)
+  2. Area → "32 · Loop": KPIs ≈ 679; el mapa resalta solo Loop
+  3. Clear filters: vuelve a 19,642 / 77 / 254
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-filter-bar develop
+  git add dashboard/ docs/
+  git commit -m "feat: dashboard filter bar wired to api filters"
+  git push -u origin feature/sprint7-filter-bar
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 6 — Panel de hotspots `[x]` (merged en develop)
+
+- **Objetos revisables:**
+  - `dashboard/src/hotspots.js` — panel (header + tabla top-10)
+  - `dashboard/src/map.js` — renderHotspotMarkers (anillos en centroides)
+  - `dashboard/src/main.js` — cadena mapa → hotspots
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 27 passed · `pytest python/tests -q` → 142
+  - `ruff check python api` → All checks passed
+  - `cd dashboard; npm run build` → OK
+- **Verificar en dev (dos terminales → 5173):**
+  - Sección "Hotspots (observed)": header con tu corrida (Run #1 · eps
+    200 m · min_samples 25 · 51 clusters · 15,857 noise) + tabla top 10
+  - Anillos rojos punteados sobre el mapa en los centroides (radios
+    proporcionales al volumen)
+  - Si borrás las corridas de la DB: mensaje "run notebook 04 first"
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-hotspots-panel develop
+  git add dashboard/ docs/
+  git commit -m "feat: hotspots panel with map overlay rings"
+  git push -u origin feature/sprint7-hotspots-panel
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 7 — Toggle coroplético / bubble map `[x]` (merged en develop)
+
+- **Objetos revisables:**
+  - `dashboard/src/map.js` — 2 modos con toolbar; anillos solo en bubble;
+    centroides runtime (d3.geoCentroid)
+  - `dashboard/src/main.js` — setOnModeChange → re-dibuja anillos
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 27 passed · `pytest python/tests -q` → 142
+  - `ruff check python api` → All checks passed
+  - `cd dashboard; npm run build` → OK
+- **Verificar en dev (dos terminales → 5173):**
+  1. Toggle "Bubble map": círculos en centroides (radio ∝ volumen);
+     anillos de hotspots visibles SOLO aquí
+  2. Filtrar (p.ej. THEFT): los círculos cambian de tamaño; los anillos
+     quedan (snapshot) — lectura separada y clara
+  3. Volver a "Choropleth": área entera coloreada, sin anillos
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-map-toggle develop
+  git add dashboard/ docs/
+  git commit -m "feat: map mode toggle (choropleth / hotspot-only bubble with intensity legend)"
+  git push -u origin feature/sprint7-map-toggle
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+---
+
+## Sprint 8 — Playwright E2E (próximo)
