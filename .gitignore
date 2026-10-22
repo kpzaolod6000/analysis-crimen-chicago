@@ -22,6 +22,7 @@ dist/
 test-results/
 playwright-report/
 .blob-storage/
+.playwright-mcp/
 
 # n8n (datos locales del contenedor si se monta en volumen local)
 n8n-data/

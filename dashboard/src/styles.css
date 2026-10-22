@@ -50,6 +50,38 @@ section h2 { font-size: 1.05rem; color: var(--muted); font-weight: 500; }
   font-size: 0.85rem;
 }
 
+/* line chart (trends) */
+#trends-chart { position: relative; }
+.trend-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.trend-area { fill: rgba(79, 195, 247, 0.12); }
+.trend-marker { fill: var(--accent); stroke: var(--bg); stroke-width: 2; }
+.axis-x text, .axis-y text { fill: var(--muted); font-size: 11px; }
+.axis-x line, .axis-y line, .axis-x path, .axis-y path { stroke: #3a4050; }
+.chart-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--panel);
+  border: 1px solid #3a4050;
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.78rem;
+  transform: translate(-50%, -120%);
+  white-space: nowrap;
+  z-index: 5;
+}
+.chart-note {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 2rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
 .api-error {
   color: var(--danger);
   font-size: 0.85rem;

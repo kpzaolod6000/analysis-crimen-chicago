@@ -885,3 +885,31 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git push -u origin feature/sprint7-dashboard-scaffold
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
+
+### Paso 2 — Line chart de tendencias `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `dashboard/src/trends.js` — line chart (hover tooltip + zoom eje X +
+    degradación elegante con <2 meses)
+  - `dashboard/index.html`, `src/main.js`, `src/styles.css` — wiring
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 18 passed · `pytest python/tests -q` → 142
+  - `ruff check python api` → All checks passed
+  - `cd dashboard; npm run build` → build OK
+- **Verificar en dev (dos terminales, http://localhost:5173):**
+  ```powershell
+  # (API + Vite según Paso 1) → sección "Monthly trend"
+  ```
+  Esperado HOY (solo sept cargado): el mensaje "Only 1 month loaded
+  (September 2026, 19,642 crimes). Load the 1-year window (Sprint 2 ·
+  Paso 3)…" — NO un SVG vacío. Hover/zoom activos cuando haya 2+ meses.
+  Nota: para ver la línea real, correr la ventana de 1 año (checklist
+  Sprint 2 · Paso 3, workflow n8n) y recargar la página.
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-trends-chart develop
+  git add dashboard/ .gitignore docs/
+  git commit -m "feat: monthly trends line chart with hover and zoom"
+  git push -u origin feature/sprint7-trends-chart
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
