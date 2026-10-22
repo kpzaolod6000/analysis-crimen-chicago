@@ -26,6 +26,30 @@ Reglas:
 
 ---
 
+## [2026-10-22] Sprint 7 — Cierre del sprint (bump 0.7.0)
+
+**Qué:** Sprint 7 marcado `[x]` en `docs/plan.md` y estado del README
+actualizado (Sprint 7 hecho, próximo Sprint 8). El dashboard quedó
+completo: KPIs, line chart, heatmap (leyenda incluida), mapa con DOS
+modos (coroplético / bubble de hotspots con barra de intensidad), barra
+de filtros y panel de hotspots — todo consumiendo FastAPI, el frontend
+nunca toca PostgreSQL directo.
+**Por qué:** cierre de sprint según git-workflow §5. El MVP visual
+(plan §10) está completo: Socrata → n8n → PostgreSQL → SQL views →
+FastAPI → D3. Los pasos 4-7 absorbieron feedback en vivo del usuario
+(bubble map, tooltips, escala, leyenda).
+**Archivos:**
+- `docs/plan.md` — Sprint 7 `[x]`
+- `README.md` — §Estado
+- `docs/changelog.md`, `docs/verification.md` — registro
+**Tests:**
+- `pytest api/tests -q` → 27 passed · `pytest python/tests -q` → 142
+  passed (total 169) · `npm run build` OK (dashboard). E2E automático
+  llega en Sprint 8 (este sprint se verificó visualmente, en vivo).
+**Cómo verificar:**
+- `docs/plan.md` muestra Sprint 7 `[x]`; tras el release: `git tag -l`
+  lista `v0.7.0`.
+
 ## [2026-10-22] Sprint 7 · Paso 7 — Toggle de mapas: coroplético + bubble map
 
 **Qué:** `dashboard/src/map.js` refactorizado con DOS vistas y toggle

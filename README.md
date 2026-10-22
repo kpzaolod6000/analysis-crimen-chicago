@@ -36,12 +36,12 @@ n8n · PostgreSQL 16 · Python 3.12 · FastAPI · D3.js · Playwright · Power A
 
 ## Estado
 
-Sprint 6 completado (FastAPI con OpenAPI docs: `/api/health`,
-`/api/crimes/summary|trends|by-type|by-community-area|hotspots` y
-`/api/reports/weekly` para Power Automate; 16 tests con TestClient +
-DB de pruebas, paso `test-api` en el CI). Release: `v0.6.0`. Próximo
-paso: **Sprint 7 — D3 Dashboard** (KPI cards, charts, heatmap y mapa
-coroplético consumiendo la API).
+Sprint 7 completado (dashboard D3.js + Vite: KPI cards, línea de
+tendencia con hover/zoom, heatmap día×hora con leyenda, mapa
+coroplético + bubble map de hotspots con toggle y barra de intensidad,
+barra de filtros conectada a los params de la API y panel de hotspots
+observados). Release: `v0.7.0`. Próximo paso: **Sprint 8 — Playwright
+E2E** (tests end-to-end del dashboard).
 
 Antes de empezar, instala el entorno siguiendo
 [docs/dev-environment.md](docs/dev-environment.md) §7 (Docker Desktop, Node

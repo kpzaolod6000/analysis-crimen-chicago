@@ -255,11 +255,16 @@ Cada sprint incluye sus tests (ver [docs/testing.md](testing.md)).
 - Resultado: API funcional con OpenAPI docs (`/docs`); 16 passed, suite
   total 158 (142 + 16); release `v0.6.0`.
 
-### Sprint 7 — D3 Dashboard `[ ]`
-- [ ] KPI cards, line chart (hover/zoom/brush), heatmap día×hora
-- [ ] Mapa coroplético por community area + filtros (tipo, año, mes, área)
-- [ ] Panel hotspots (observado vs predicho)
-- Resultado: dashboard completo consumiendo FastAPI.
+### Sprint 7 — D3 Dashboard `[x]`
+- [x] KPI cards, line chart (hover/zoom, degradación con 1 mes),
+      heatmap día×hora (con leyenda de intensidad)
+- [x] Mapa coroplético + **bubble map de hotspots** (toggle con 2 modos,
+      feedback del usuario: burbujas rellenas escaladas en Reds, esqueleto,
+      tooltips instantáneos) + filtros (tipo/año/mes/área en API y barra
+      del dashboard)
+- [x] Panel hotspots (observado; el "predicho" llega en Sprint 10)
+- Resultado: dashboard completo consumiendo FastAPI (Vite 7 + D3 7;
+  el frontend nunca toca PostgreSQL directo; release `v0.7.0`).
 
 ### Sprint 8 — Playwright E2E `[ ]`
 - [ ] Configurar Playwright + aprender con ejercicios guiados (ver testing.md)
