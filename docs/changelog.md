@@ -26,6 +26,89 @@ Reglas:
 
 ---
 
+## [2026-10-22] Sprint 7 · Paso 7 — Toggle de mapas: coroplético + bubble map
+
+**Qué:** `dashboard/src/map.js` refactorizado con DOS vistas y toggle
+(botones "Choropleth"/"Bubble map" sobre el mapa):
+- **Choropleth** (anterior): área entera coloreada por volumen √.
+- **Bubble map** (a pedido del usuario): círculos en los centroides
+  (`d3.geoCentroid` runtime, sin tocar la API), radio √ del conteo
+  (2→20 px), relleno magma; áreas sin crímenes = punto gris pequeño.
+  Los anillos de hotspots viven SOLO en este modo (capa puntual sobre
+  capa puntual — el coroplético queda limpio; feedback de que los rings
+  son un snapshot sin filtros).
+- Hover/tooltip compartidos (helper `bindAreaHover`); el re-render del
+  toggle es self-contained (`lastFilters` module-level) y tras el cambio
+  se re-dibujan los anillos vía callback `setOnModeChange` (main.js).
+**Por qué:** el usuario reportó que los anillos sobre el coroplético
+filtrado mezclaban lecturas incomparables (anillos = snapshot sin filtros,
+colores = datos filtrados) y propuso bubble map: con counts 1→927 el
+tamaño del círculo es una codificación más honesta que el área coloreada.
+Ambos mapas comparten base (proyección/geojson/tooltip) — el toggle no
+duplica código.
+**Fixes del paso (feedback del usuario):** (a) "¿qué son los círculos
+punteados?" → son los anillos de clusters DBSCAN (radio ∝ volumen);
+(b) el bubble map se veía "sin esqueleto" → se dibuja el outline de las
+77 áreas debajo de las burbujas (hover/también en los outlines);
+(c) tooltips en burbujas Y áreas: el hover usaba `.attr("class", ...)`
+que REEMPLAZABA la lista de clases (pisaba `area-bubble`) → refactor del
+helper a `classed()` (preserva) + CSS `!important` en el highlight para
+ganarle al fill/stroke inline; (d) los bordes respondían pero no el
+interior de las áreas → `fill: none` + default visiblePainted solo
+captura el trazo → `pointer-events: all` en los outlines, y el
+`feature.properties` de los wrappers de burbuja se lee vía `featureOf`
+(TypeError silencioso en cada hover de burbuja); (e) hotspots con la
+técnica bubble map COMPLETA: círculos RELLENOS con escala **Reds** por
+volumen (doble codificación: radio √ + color) — sin anillos punteados;
+(f) bubble map = SOLO hotspots (las burbujas por área perdían relevancia,
+feedback del usuario): esqueleto de referencia + círculos de clusters;
+(g) **barra vertical de intensidad** al lado derecho del mapa (espacio
+del lago, sin expandir viewBox): gradient Reds 0→maxPoints + axisRight
+con ticks formateados + hover sobre la barra con SU tooltip ("≈ N
+points" a esa altura via valueAt.invert);
+(h) ajuste final del usuario: tooltip de la barra QUITADO (los tooltips
+viven en cada hotspot via <title> nativo) y relleno más transparente
+(fill-opacity 0.45, estilo bubble map clásico).
+**Archivos:**
+- `dashboard/src/map.js` — refactor con 2 modos + toolbar + overlay guard
+- `dashboard/src/main.js` — setOnModeChange
+- `dashboard/src/styles.css` — toolbar
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite automatizada (frontend). Build OK (125 KB).
+  Suite: api 27 · python 142 · ruff limpio (sin cambios)
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 7" en `docs/verification.md`.
+
+## [2026-10-22] Sprint 7 · Paso 6 — Panel de hotspots (hotspots.js + anillos en el mapa)
+
+**Qué:** `dashboard/src/hotspots.js` (nuevo): panel "Hotspots (observed)"
+que lee `/api/crimes/hotspots` (última corrida) y renderiza (1) header de
+proveniencia (run_key, eps m, min_samples, clusters, noise) y (2) tabla
+top-10 por volumen (label, puntos, centroide); (3) superpone **anillos**
+sobre el mapa (`renderHotspotMarkers` en map.js: círculos punteados rojos
+en los centroides, radio √ del volumen, tooltip nativo `<title>`). Sin
+corridas: mensaje útil ("run notebook 04 first") — 404 manejado; con API
+caída, mensaje de error. main.js: mapa → cadena con renderHotspots (los
+anillos necesitan el svg del mapa); el panel NO usa filtros (los clusters
+son snapshots precalculados). Fix menor propio: selector CSS `.hotspots-panel`
+clase→id (`#hotspots-panel`), y la var de proyección module-level para el
+overlay (reescrita en cada re-render del mapa).
+**Por qué:** último ítem del plan de Sprint 7 ("panel hotspots observado
+vs predicho"): el observado vive acá; el predicho se sumará en Sprint 10
+cuando exista el modelo Nivel 2. Data-driven total: sin corridas, no hay
+panel fingido.
+**Archivos:**
+- `dashboard/src/hotspots.js` — panel (nuevo)
+- `dashboard/src/map.js` — renderHotspotMarkers + estado module-level
+- `dashboard/src/main.js`, `index.html`, `styles.css` — wiring
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite automatizada (frontend; E2E Sprint 8). Verificación en
+  vivo manual. Suite: `api` 27 passed · `python` 142 passed · ruff limpio
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 6" en `docs/verification.md`.
+
 ## [2026-10-22] Sprint 7 · Paso 5 (parte 2) — Filter bar del dashboard (filters.js)
 
 **Qué:** `dashboard/src/filters.js` nuevo: barra con 4 selects (Type /
