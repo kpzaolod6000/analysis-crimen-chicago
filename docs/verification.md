@@ -1014,3 +1014,54 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git push -u origin feature/sprint7-filter-bar
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
+
+### Paso 6 — Panel de hotspots `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `dashboard/src/hotspots.js` — panel (header + tabla top-10)
+  - `dashboard/src/map.js` — renderHotspotMarkers (anillos en centroides)
+  - `dashboard/src/main.js` — cadena mapa → hotspots
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 27 passed · `pytest python/tests -q` → 142
+  - `ruff check python api` → All checks passed
+  - `cd dashboard; npm run build` → OK
+- **Verificar en dev (dos terminales → 5173):**
+  - Sección "Hotspots (observed)": header con tu corrida (Run #1 · eps
+    200 m · min_samples 25 · 51 clusters · 15,857 noise) + tabla top 10
+  - Anillos rojos punteados sobre el mapa en los centroides (radios
+    proporcionales al volumen)
+  - Si borrás las corridas de la DB: mensaje "run notebook 04 first"
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-hotspots-panel develop
+  git add dashboard/ docs/
+  git commit -m "feat: hotspots panel with map overlay rings"
+  git push -u origin feature/sprint7-hotspots-panel
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 7 — Toggle coroplético / bubble map `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `dashboard/src/map.js` — 2 modos con toolbar; anillos solo en bubble;
+    centroides runtime (d3.geoCentroid)
+  - `dashboard/src/main.js` — setOnModeChange → re-dibuja anillos
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 27 passed · `pytest python/tests -q` → 142
+  - `ruff check python api` → All checks passed
+  - `cd dashboard; npm run build` → OK
+- **Verificar en dev (dos terminales → 5173):**
+  1. Toggle "Bubble map": círculos en centroides (radio ∝ volumen);
+     anillos de hotspots visibles SOLO aquí
+  2. Filtrar (p.ej. THEFT): los círculos cambian de tamaño; los anillos
+     quedan (snapshot) — lectura separada y clara
+  3. Volver a "Choropleth": área entera coloreada, sin anillos
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-map-toggle develop
+  git add dashboard/ docs/
+  git commit -m "feat: map mode toggle (choropleth / bubble with hotspot rings)"
+  git push -u origin feature/sprint7-map-toggle
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  # luego: cierre Sprint 7 + release v0.7.0 (§9)
+  ```

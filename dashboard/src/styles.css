@@ -121,10 +121,62 @@ section h2 { font-size: 1.05rem; color: var(--muted); font-weight: 500; }
 .hour-label { fill: var(--muted); font-size: 10px; }
 #heatmap-chart rect { transition: fill 0.1s; }
 
-/* choropleth map */
+/* mapas (Sprint 7 Paso 4 + toggle Paso 7) */
 #map-chart { position: relative; }
 .area-shape { stroke: #0f1117; stroke-width: 0.7; cursor: pointer; }
-.area-hover { stroke: var(--accent); stroke-width: 1.6; }
+.area-hover { stroke: var(--accent) !important; stroke-width: 1.6 !important; }
+.area-outline {
+  fill: none;
+  stroke: rgba(154, 161, 178, 0.35);   /* esqueleto legible sobre el fondo */
+  stroke-width: 0.8;
+  cursor: pointer;
+  /* fill none => visiblePainted solo dispara en el TRAZO (bordes);
+     "all" captura el cursor en el interior también */
+  pointer-events: all;
+}
+.map-toolbar {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+.map-mode-btn {
+  background: var(--panel);
+  color: var(--muted);
+  border: 1px solid #3a4050;
+  border-radius: 6px;
+  padding: 0.3rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+.map-mode-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.map-mode-btn:hover { color: var(--text); }
+
+/* hotspots panel (Sprint 7 Paso 6) */
+.run-info { color: var(--muted); font-size: 0.85rem; margin: 0 0 0.7rem; }
+.run-info strong { color: var(--text); }
+.run-info .muted { color: var(--muted); }
+.hotspots-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.hotspots-table th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 500;
+  border-bottom: 1px solid #3a4050;
+  padding: 0.35rem 0.6rem;
+}
+.hotspots-table td {
+  padding: 0.35rem 0.6rem;
+  color: var(--text);
+  border-bottom: 1px solid #22262f;
+}
+.hotspots-table td .highlighted { color: var(--accent); }
+.hotspot-marker { pointer-events: auto; }
 
 .api-error {
   color: var(--danger);
