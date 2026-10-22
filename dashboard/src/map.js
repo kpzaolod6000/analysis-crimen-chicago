@@ -1,10 +1,10 @@
-/**
- * Choropleth map by community area (Sprint 7 · Paso 4).
+﻿/**
+ * Choropleth map by community area (Sprint 7 Â· Paso 4).
  *
  * Geometry: the 77 official community areas (GeoJSON from the Chicago
- * Data Portal, dataset igwz-8jzy — committed in public/). Counts:
+ * Data Portal, dataset igwz-8jzy â€” committed in public/). Counts:
  * /api/crimes/by-community-area. Color: sqrt scale (counts are heavily
- * skewed — linear would make most areas look zero).
+ * skewed â€” linear would make most areas look zero).
  *
  * The dashboard never talks to PostgreSQL: geometry is a static asset,
  * counts come from the API.
@@ -19,12 +19,12 @@ function renderEmpty(container, message) {
   container.append("div").attr("class", "chart-note").text(message);
 }
 
-export async function renderMap() {
+export async function renderMap(filters = {}) {
   const container = d3.select("#map-chart");
   let ranking, geo;
   try {
     [ranking, geo] = await Promise.all([
-      getByCommunityArea(100),
+      getByCommunityArea(100, filters),
       d3.json(areasUrl),
     ]);
   } catch (err) {
@@ -36,7 +36,7 @@ export async function renderMap() {
   console.log("map ranking:", ranking);
   console.log("map geo:", byArea);
   const maxCount = d3.max(ranking, (r) => r.crime_count) || 1;
-  // sqrt: el count va 1..927 — lineal dejaría 70 áreas como "cero"
+  // sqrt: el count va 1..927 â€” lineal dejarÃ­a 70 Ã¡reas como "cero"
   const color = d3.scaleSqrt().domain([0, maxCount]).range([0.12, 1]);
 
   const node = container.node();
@@ -74,9 +74,9 @@ export async function renderMap() {
         .style("left", `${event.offsetX}px`)
         .style("top", `${event.offsetY - 10}px`)
         .html(
-          `<strong>${areaNum} · ${name}</strong><br>` +
+          `<strong>${areaNum} Â· ${name}</strong><br>` +
             (row
-              ? `${d3.format(",")(row.crime_count)} crimes · ${row.share_pct}% · rank ${row.crime_rank}`
+              ? `${d3.format(",")(row.crime_count)} crimes Â· ${row.share_pct}% Â· rank ${row.crime_rank}`
               : "no crimes recorded in this window")
         );
     })
@@ -89,7 +89,7 @@ export async function renderMap() {
     )
     .attr("fill", (feature) => {
       const row = byArea.get(Number(feature.properties.area_numbe));
-      if (!row) return "#262a35"; // área sin crímenes en la ventana
+      if (!row) return "#262a35"; // Ã¡rea sin crÃ­menes en la ventana
       return d3.interpolateMagma(color(row.crime_count));
     });
 }

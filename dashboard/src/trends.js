@@ -1,5 +1,5 @@
-/**
- * Monthly trends line chart (Sprint 7 · Paso 2).
+﻿/**
+ * Monthly trends line chart (Sprint 7 Â· Paso 2).
  *
  * Consumes /api/crimes/trends (vw_monthly_crimes). Features:
  *   - SVG line + area with axes (month labels)
@@ -25,11 +25,11 @@ function renderEmpty(container, message) {
     .text(message);
 }
 
-export async function renderTrends() {
+export async function renderTrends(filters = {}) {
   const container = d3.select("#trends-chart");
   let trends;
   try {
-    trends = await getTrends();
+    trends = await getTrends(filters);
   } catch (err) {
     renderEmpty(container, `API down: ${err.message}`);
     return;
@@ -39,7 +39,7 @@ export async function renderTrends() {
     renderEmpty(
       container,
       trends.length === 1
-        ? `Only 1 month loaded (${trends[0].month_name} ${trends[0].year}, ${fmtNumber(trends[0].crime_count)} crimes). Load the 1-year window (Sprint 2 · Paso 3) to draw the trend line.`
+        ? `Only 1 month loaded (${trends[0].month_name} ${trends[0].year}, ${fmtNumber(trends[0].crime_count)} crimes). Load the 1-year window (Sprint 2 Â· Paso 3) to draw the trend line.`
         : "No data in the warehouse."
     );
     return;
@@ -131,7 +131,7 @@ function drawChart(container, trends) {
         .style("top", `${cy}px`)
         .html(
           `<strong>${d.month_name} ${d.year}</strong><br>` +
-            `${fmtNumber(d.crime_count)} crimes · ${d.arrest_count} arrests` +
+            `${fmtNumber(d.crime_count)} crimes Â· ${d.arrest_count} arrests` +
             `<br>Arrest rate: ${d.arrest_rate_pct}%`
         );
     })
@@ -140,7 +140,7 @@ function drawChart(container, trends) {
       marker.style("opacity", 0);
     });
 
-  // zoom en el eje X (con 1 punto no-op; con 12 meses permite inspección)
+  // zoom en el eje X (con 1 punto no-op; con 12 meses permite inspecciÃ³n)
   const zoom = d3
     .zoom()
     .scaleExtent([1, 8])
