@@ -88,6 +88,11 @@ section h2 { font-size: 1.05rem; color: var(--muted); font-weight: 500; }
 .hour-label { fill: var(--muted); font-size: 10px; }
 #heatmap-chart rect { transition: fill 0.1s; }
 
+/* choropleth map */
+#map-chart { position: relative; }
+.area-shape { stroke: #0f1117; stroke-width: 0.7; cursor: pointer; }
+.area-hover { stroke: var(--accent); stroke-width: 1.6; }
+
 .api-error {
   color: var(--danger);
   font-size: 0.85rem;

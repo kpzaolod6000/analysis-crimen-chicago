@@ -26,6 +26,36 @@ Reglas:
 
 ---
 
+## [2026-10-22] Sprint 7 · Paso 4 — Mapa coroplético por community area
+
+**Qué:** (a) asset `dashboard/public/community_areas.geojson` (2 MB): las
+77 áreas oficiales con MultiPolygon — descargado del export geojson del
+dataset geoespacial `igwz-8jzy` del portal (la vista `cauq-8yn6` NO expone
+geometría via resource: features con geometry NULL — descubierto al
+validar). (b) `dashboard/src/map.js`: d3.geoMercator fitExtent al
+viewport, path por feature coloreado con escala **sqrt** (counts muy
+sesgados 1..927; lineal dejaría 70 áreas como "cero"), hover con highlight
+stroke + tooltip (`32 · Loop · 679 crimes · 3.5% · rank 5`, nombre Title
+Case del API con fallback al UPPER del geojson), áreas sin crímenes en
+gris panel. Vite sirve el geojson desde public/. Limpio además los
+console.log de debug que el usuario había dejado en heatmap.js. Validado
+en vivo: build OK (119 KB) + Playwright hover real sobre el mapa.
+**Por qué:** ítem "mapa coroplético por community area" del plan. La
+geometría es asset estático (nunca vía API/DB) y los conteos SIEMPRE vía
+API — el mapa une las dos fuentes legítimas del dashboard. Escala sqrt
+elegida por el skew del count: sin ella el mapa se vería casi todo negro.
+**Archivos:**
+- `dashboard/public/community_areas.geojson` — geometría oficial (nuevo)
+- `dashboard/src/map.js` — componente (nuevo)
+- `dashboard/src/{api,main}.js`, `index.html`, `styles.css` — wiring
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite automatizada (frontend; E2E Sprint 8). Validación en
+  vivo: build + Playwright hover ("32 · Loop · 679 crimes · 3.5% · rank 5").
+- `pytest api/tests -q` → 19 passed · ruff → limpio (sin cambios)
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 4" en `docs/verification.md`.
+
 ## [2026-10-22] Sprint 7 · Paso 3 — Heatmap día×hora (by-hour + heatmap.js)
 
 **Qué:** (a) endpoint nuevo `GET /api/crimes/by-hour` (service

@@ -9,9 +9,11 @@
 import { renderKpis } from "./kpis.js";
 import { renderTrends } from "./trends.js";
 import { renderHeatmap } from "./heatmap.js";
+import { renderMap } from "./map.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   renderKpis();
   renderTrends();
   renderHeatmap();
+  renderMap();
 });

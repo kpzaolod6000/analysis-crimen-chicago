@@ -936,7 +936,31 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   ```powershell
   git switch -c feature/sprint7-heatmap develop
   git add api/ dashboard/ docs/
-  git commit -m "feat: day-hour heatmap via new by-hour endpoint"
+  git commit -m "feat: day-hour heatmap with intensity legend"
   git push -u origin feature/sprint7-heatmap
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 4 — Mapa coroplético por community area `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `dashboard/public/community_areas.geojson` — 77 áreas oficiales
+    (dataset `igwz-8jzy`, export geojson)
+  - `dashboard/src/map.js` — mercator + escala sqrt + hover/tooltip
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 19 passed · `pytest python/tests -q` → 142
+  - `ruff check python api` → All checks passed
+  - `cd dashboard; npm run build` → OK
+- **Verificar en dev (dos terminales → 5173):**
+  - La sección "Crime by community area" muestra la silueta de Chicago
+  - Hover en cualquier área: tooltip con número + nombre + crimes + share
+    + rank (ej. "32 · Loop · 679 crimes · 3.5% · rank 5") y highlight
+  - Colores: escala sqrt (distribución realista, no todo negro)
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-choropleth develop
+  git add dashboard/ docs/
+  git commit -m "feat: choropleth map by community area"
+  git push -u origin feature/sprint7-choropleth
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
