@@ -26,6 +26,35 @@ Reglas:
 
 ---
 
+## [2026-10-22] Sprint 8 · Paso 1 — Playwright instalado + smoke E2E en verde
+
+**Qué:** (a) `pytest-playwright` en requirements (con nota: binarios una
+vez via `python -m playwright install chromium` — ya descargados, 118 MB)
++ target `test-e2e` en el Makefile. (b) `dashboard/e2e/test_smoke.py`
+(ejercicio día-1 de testing.md §3.1): abre 5173 y valida el título
+"Chicago Crimes Analytics" con `expect().to_be_visible()`; base URL por
+env `E2E_BASE_URL` (default localhost:5173). (c) Fix de naming
+descubierto al correr: pytest NO recoge `*.spec.py` (module-name dot
+`smoke.spec` → ModuleNotFoundError) → convención efectiva `test_*.py`
+(renombrado + pytest.ini eliminado + testing.md §3.1/3.2 actualizados).
+Validado en vivo: API + Vite arriba → **1 passed** headless.
+**Por qué:** primer paso del Sprint 8 (ruta guiada de testing.md). El
+smoke domina el ciclo install → run → report; los specs de dominio
+(filters/trends/heatmap/map/hotspots) siguen en los próximos pasos con
+`data-testid` en el HTML.
+**Archivos:**
+- `python/requirements.txt` — pytest-playwright
+- `dashboard/e2e/test_smoke.py` — smoke (nuevo)
+- `Makefile` — target `test-e2e`
+- `docs/testing.md` — naming corregido (spec → test_*.py)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest dashboard/e2e -v` → 1 passed (con stack local arriba) ·
+  suites previas sin cambios (api 27 · python 142)
+**Cómo verificar:**
+- Checklist "Sprint 8 · Paso 1" en `docs/verification.md` (instalación,
+  dos terminales + pytest e2e).
+
 ## [2026-10-22] Sprint 7 — Cierre del sprint (bump 0.7.0)
 
 **Qué:** Sprint 7 marcado `[x]` en `docs/plan.md` y estado del README

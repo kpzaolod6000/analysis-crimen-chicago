@@ -89,20 +89,24 @@ dashboard D3, que no se puede testear con pytest.
 | 5 | Config: `playwright.config`, base URL, traces en fallo | docs → "Configuration" |
 
 **Ejercicio práctico inicial (Sprint 8, día 1):** crear
-`dashboard/e2e/smoke.spec.py` que abre `http://localhost:5173` (o el servidor
+`dashboard/e2e/test_smoke.py` que abre `http://localhost:5173` (o el servidor
 estático) y verifica que el título "Chicago Crime Analytics" es visible. Con
 eso ya se domina el ciclo install → run → report.
+
+Nota de naming (ajustada al estrenar Sprint 8): pytest NO recoge archivos
+`*.spec.py` (los interpreta como módulos dot: `smoke.spec` → import falla);
+la convención efectiva es `test_*.py` como en todo el repo.
 
 ### 3.2 Tests E2E del dashboard (una vez aprendido)
 
 ```text
 dashboard/e2e/
-├── smoke.spec.py        # la app carga, título y KPI cards visibles
-├── filters.spec.py      # filtrar por tipo de crimen actualiza gráficos
-├── trends.spec.py       # el line chart renderiza N puntos, tooltip en hover
-├── heatmap.spec.py      # celdas día×hora existen y cambian con filtro de mes
-├── map.spec.py          # el SVG del mapa tiene 77 paths de community areas
-└── hotspots.spec.py     # panel observado vs predicho visible
+├── test_smoke.py           # la app carga, título y KPI cards visibles
+├── test_filters.py         # filtrar por tipo de crimen actualiza gráficos
+├── test_trends.py          # el line chart renderiza N puntos, tooltip en hover
+├── test_heatmap.py         # celdas día×hora existen y cambian con filtro de mes
+├── test_map.py             # el SVG del mapa tiene 77 paths de community areas
+└── test_hotspots.py        # panel observado vs predicho visible
 ```
 
 - Convención: usar `data-testid` en el HTML del dashboard para selectores

@@ -13,10 +13,10 @@
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down migrate seed load-warehouse views test-up test-down test-unit test-integration test-api lint
+.PHONY: help up down migrate seed load-warehouse views test-up test-down test-unit test-integration test-api test-e2e lint
 
 help:
-	@echo "Targets: up down migrate seed load-warehouse views test-up test-down test-unit test-integration test-api lint"
+	@echo "Targets: up down migrate seed load-warehouse views test-up test-down test-unit test-integration test-api test-e2e lint"
 
 up:
 	docker compose up -d
@@ -58,6 +58,10 @@ test-integration:
 
 test-api:
 	pytest api/tests -v
+
+# E2E del dashboard (requiere API + Vite corriendo; ver e2e/smoke.spec.py)
+test-e2e:
+	pytest dashboard/e2e -v
 
 lint:
 	ruff check python api

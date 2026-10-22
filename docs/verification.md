@@ -1067,4 +1067,30 @@ registro histórico de `docs/changelog.md` y de la estrategia de
 
 ---
 
-## Sprint 8 — Playwright E2E (próximo)
+## Sprint 8 — Playwright E2E
+
+### Paso 1 — Setup + smoke `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `python/requirements.txt` — pytest-playwright (binarios ya instalados)
+  - `dashboard/e2e/test_smoke.py` — título visible (ejercicio día-1)
+  - `Makefile` — target `test-e2e`
+  - `docs/testing.md` — naming `test_*.py` (no `*.spec.py`)
+- **Verificar (tu parte):**
+  ```powershell
+  .\.venv\Scripts\python.exe -m pip install -r python\requirements.txt
+  # (si otro host: python -m playwright install chromium)
+  # terminal 1: .\.venv\Scripts\python.exe -m uvicorn api.app.main:app --port 8000
+  # terminal 2 (dashboard/): npm run dev
+  # terminal 3:
+  pytest dashboard/e2e -v              # → 1 passed
+  pytest dashboard/e2e -v --headed     # viendo el navegador
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint8-playwright-setup develop
+  git add python/requirements.txt dashboard/e2e/ Makefile docs/
+  git commit -m "feat: playwright e2e setup with smoke test"
+  git push -u origin feature/sprint8-playwright-setup
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
