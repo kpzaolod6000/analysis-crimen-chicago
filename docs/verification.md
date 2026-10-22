@@ -1015,7 +1015,7 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
 
-### Paso 6 — Panel de hotspots `[ ]` (pendiente de tu verificación)
+### Paso 6 — Panel de hotspots `[x]` (merged en develop)
 
 - **Objetos revisables:**
   - `dashboard/src/hotspots.js` — panel (header + tabla top-10)
@@ -1040,7 +1040,7 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
 
-### Paso 7 — Toggle coroplético / bubble map `[ ]` (pendiente de tu verificación)
+### Paso 7 — Toggle coroplético / bubble map `[x]` (merged en develop)
 
 - **Objetos revisables:**
   - `dashboard/src/map.js` — 2 modos con toolbar; anillos solo en bubble;
@@ -1060,8 +1060,11 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   ```powershell
   git switch -c feature/sprint7-map-toggle develop
   git add dashboard/ docs/
-  git commit -m "feat: map mode toggle (choropleth / bubble with hotspot rings)"
+  git commit -m "feat: map mode toggle (choropleth / hotspot-only bubble with intensity legend)"
   git push -u origin feature/sprint7-map-toggle
   # CI verde (checklist §10.3) → merge --no-ff a develop
-  # luego: cierre Sprint 7 + release v0.7.0 (§9)
   ```
+
+---
+
+## Sprint 8 — Playwright E2E (próximo)
