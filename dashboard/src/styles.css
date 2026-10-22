@@ -1,0 +1,56 @@
+/* Chicago Crimes Dashboard — Sprint 7 */
+:root {
+  --bg: #0f1117;
+  --panel: #1a1d27;
+  --text: #e8eaf0;
+  --muted: #9aa1b2;
+  --accent: #4fc3f7;
+  --danger: #ef5350;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header { padding: 1rem 2rem; border-bottom: 1px solid #2a2e3a; }
+header h1 { margin: 0; font-size: 1.4rem; }
+.subtitle { margin: 0.2rem 0 0; color: var(--muted); font-size: 0.85rem; }
+
+main { padding: 1rem 2rem 3rem; max-width: 1200px; margin: 0 auto; }
+
+section { margin-top: 2rem; }
+section h2 { font-size: 1.05rem; color: var(--muted); font-weight: 500; }
+
+/* KPI cards */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+.kpi-card {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+}
+.kpi-value { font-size: 1.8rem; font-weight: 600; color: var(--accent); }
+.kpi-label { color: var(--muted); font-size: 0.8rem; margin-top: 0.2rem; }
+.kpi-sub { color: var(--muted); font-size: 0.75rem; margin-top: 0.4rem; }
+
+.chart-placeholder {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 2rem;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.api-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+}

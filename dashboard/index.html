@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chicago Crimes Analytics</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Chicago Crimes Analytics</h1>
+      <p class="subtitle">Crime dashboard — D3.js + FastAPI + PostgreSQL</p>
+    </header>
+
+    <main>
+      <section id="kpis" class="kpi-grid" aria-label="Key metrics"></section>
+
+      <section id="trends" aria-label="Monthly trend">
+        <h2>Monthly trend</h2>
+        <div id="trends-chart" class="chart-placeholder">Sprint 7 · Paso 2</div>
+      </section>
+
+      <section id="heatmap" aria-label="Day x hour heatmap">
+        <h2>Crime by day and hour</h2>
+        <div id="heatmap-chart" class="chart-placeholder">Sprint 7 · Paso 3</div>
+      </section>
+
+      <section id="map" aria-label="Community area map">
+        <h2>Crime by community area</h2>
+        <div id="map-chart" class="chart-placeholder">Sprint 7 · Paso 4</div>
+      </section>
+
+      <section id="hotspots" aria-label="Hotspot panel">
+        <h2>Hotspots (observed)</h2>
+        <div id="hotspots-panel" class="chart-placeholder">Sprint 7 · Paso 5</div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

@@ -850,3 +850,38 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git add ruff.toml docs/
   git commit -m "chore: exclude notebooks from ruff lint (ruff.toml)"
   ```
+
+---
+
+## Sprint 7 — D3 Dashboard
+
+### Paso 1 — Scaffold + KPI cards `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `dashboard/` — package.json (vite 7 + d3), index.html (shell),
+    src/{main,kpis,api}.js, styles.css
+  - `api/app/main.py` — CORSMiddleware (localhost 5173/4173, GET)
+  - `api/tests/test_cors.py` — 2 tests (preflight + origen desconocido)
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 18 passed (16 + 2)
+  - `pytest python/tests -q` → 142 passed
+  - `ruff check python api` → All checks passed
+  - `cd dashboard; npm install; npm run build` → build OK
+- **Verificar en dev (dos terminales):**
+  ```powershell
+  # terminal 1 — API:
+  .\.venv\Scripts\python.exe -m uvicorn api.app.main:app --port 8000
+  # terminal 2 — dashboard (desde dashboard/):
+  npm run dev
+  # navegador: http://localhost:5173 → 4 KPI cards con datos reales:
+  #   19,642 Crimes · 14.5% Arrest rate · 254 Crime types · 77 Community areas
+  # si la API está caída: la card muestra "API down" (comportamiento esperado)
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-dashboard-scaffold develop
+  git add dashboard/ api/app/main.py api/tests/test_cors.py docs/
+  git commit -m "feat: dashboard scaffold with kpi cards and cors"
+  git push -u origin feature/sprint7-dashboard-scaffold
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```

@@ -26,6 +26,35 @@ Reglas:
 
 ---
 
+## [2026-10-21] Sprint 7 · Paso 1 — Scaffold dashboard (Vite + D3 + KPI cards)
+
+**Qué:** paquete `dashboard/` nuevo: `package.json` (vite 7 + d3 7.9),
+`index.html` (shell con secciones: KPIs, trends, heatmap, mapa, hotspots —
+los charts llegan en pasos siguientes como placeholders), `src/api.js`
+(cliente de los 6 endpoints de Sprint 6; base URL `VITE_API_URL`, el
+dashboard NUNCA toca PostgreSQL directo), `src/kpis.js` (4 KPI cards con
+d3 data-join) + `src/main.js` + `styles.css` (dark theme) + `.gitignore`.
+En la API: `CORSMiddleware` (orígenes localhost 5173/4173, GET only) +
+2 tests de CORS (preflight permitido y origen desconocido → 400).
+Validación en vivo: build de producción OK (43 KB gzip 15 KB) y prueba
+real en navegador (Playwright): KPIs con datos reales de dev — 19.642
+crímenes (sept-2026), 14.5% arrest rate (2.850), 254 tipos, 77 áreas.
+**Por qué:** primer paso del Sprint 7. CORS es prerrequisito estructural
+(navegador 5173 → API 8000); el cliente centralizado en `api.js` es la
+única puerta al backend (regla del plan). Sin tests E2E todavía (Sprint 8):
+la verificación de este paso es manual + el test de CORS en la API.
+**Archivos:**
+- `dashboard/{package.json,index.html,.gitignore}`, `dashboard/src/{main,kpis,api}.js`,
+  `dashboard/src/styles.css` — dashboard (nuevo)
+- `api/app/main.py` — CORSMiddleware; `api/tests/test_cors.py` — 2 tests
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest api/tests -q` → 18 passed (16 + 2) · `pytest python/tests -q` →
+  142 passed · `ruff check python api` → limpio · `npm run build` → OK
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 1" en `docs/verification.md` (npm install,
+  dos servidores, KPIs visibles con los números reales).
+
 ## [2026-10-21] Sprint 6 — Cierre del sprint (bump 0.6.0)
 
 **Qué:** Sprint 6 marcado `[x]` en `docs/plan.md` y estado del README
