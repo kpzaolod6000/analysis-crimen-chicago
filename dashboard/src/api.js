@@ -25,4 +25,5 @@ export const getByCommunityArea = (limit = 100) =>
   fetchJson(`/api/crimes/by-community-area?limit=${limit}`);
 export const getHotspots = (runKey = null) =>
   fetchJson(runKey ? `/api/crimes/hotspots?run_key=${runKey}` : "/api/crimes/hotspots");
+export const getByHour = () => fetchJson("/api/crimes/by-hour");
 export const getWeeklyReport = () => fetchJson("/api/reports/weekly");

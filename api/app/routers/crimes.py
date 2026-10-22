@@ -7,6 +7,7 @@ from api.app.schemas.crimes import (
     AreaRanking,
     CrimesSummary,
     CrimeTypeCount,
+    DayHourRow,
     HotspotsResponse,
     MonthlyTrend,
 )
@@ -53,3 +54,8 @@ def get_crimes_hotspots(
             detail="no hotspot runs stored (run the DBSCAN notebook first)",
         )
     return data
+
+
+@router.get("/by-hour", response_model=list[DayHourRow])
+def get_crimes_by_hour(conn: Conn):
+    return crimes_service.day_hour(conn)

@@ -39,6 +39,13 @@ class AreaRanking(BaseModel):
     crime_rank: int
 
 
+class DayHourRow(BaseModel):
+    day_of_week: int      # ISO: 1=Monday .. 7=Sunday
+    day_name: str
+    hour: int
+    crime_count: int
+
+
 class HotspotRun(BaseModel):
     run_key: int
     eps: float            # metros reales (haversine), guardado por save_run

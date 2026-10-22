@@ -913,3 +913,30 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git push -u origin feature/sprint7-trends-chart
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
+
+### Paso 3 — Heatmap día×hora `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `api/app/{services,routers,schemas}` — endpoint /api/crimes/by-hour
+    (nuevo: el Sprint 6 no lo tenía; el heatmap lo requiere)
+  - `dashboard/src/heatmap.js` — matriz 7×24, escala magma, tooltip por celda
+  - `api/tests/test_crimes_by_hour.py` — 1 test
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 19 passed (18 + 1)
+  - `pytest python/tests -q` → 142 passed
+  - `ruff check python api` → All checks passed
+  - `cd dashboard; npm run build` → build OK
+- **Verificar en dev (dos terminales → http://localhost:5173):**
+  ```powershell
+  # sección "Crime by day and hour": 7 filas (Mon..Sun) × 24 columnas
+  # hover en celda → tooltip con día/hora/conteo
+  # patrón real esperado: madrugada (0-5h) oscura, tarde-noche (12-23h) caliente
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-heatmap develop
+  git add api/ dashboard/ docs/
+  git commit -m "feat: day-hour heatmap via new by-hour endpoint"
+  git push -u origin feature/sprint7-heatmap
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
