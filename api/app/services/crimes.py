@@ -268,6 +268,22 @@ def weekly_report(conn) -> dict | None:
     }
 
 
+def day_hour(conn) -> list[dict]:
+    """Heatmap día×hora (vw_day_hour), orden ISO (lunes=1) y hora ascendente."""
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT day_of_week, day_name, hour, crime_count
+        FROM warehouse.vw_day_hour
+        ORDER BY day_of_week, hour
+        """
+    )
+    rows = cur.fetchall()
+    cur.close()
+    keys = ["day_of_week", "day_name", "hour", "crime_count"]
+    return [dict(zip(keys, row)) for row in rows]
+
+
 def database_ok(conn) -> bool:
     cur = conn.cursor()
     cur.execute("SELECT 1")

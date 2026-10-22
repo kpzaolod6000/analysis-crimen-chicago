@@ -26,6 +26,51 @@ Reglas:
 
 ---
 
+## [2026-10-22] Sprint 7 · Paso 3 — Heatmap día×hora (by-hour + heatmap.js)
+
+**Qué:** (a) endpoint nuevo `GET /api/crimes/by-hour` (service
+`day_hour()` + schema `DayHourRow`) leyendo `vw_day_hour` en orden ISO —
+el Sprint 6 no lo tenía y el heatmap lo necesita; test
+test_crimes_by_hour.py (3 celdas exactas de la fixture). Fix propio
+atrapado por el test: escribí "Sat 2026-09-20" y es **Sunday** (7) —
+esperados de memoria otra vez, la API estaba bien. (b)
+`dashboard/src/heatmap.js`: matriz 7×24 completa (zero-fill), escala
+secuencial magma, tooltip por celda (día+hora+conteo), labels de días
+ISO y horas cada 3; integrado a main.js + api.js (getByHour) + estilos.
+Validación en vivo: build OK (95 KB) + Playwright contra 5173 → heatmap
+con datos reales mostrando la firma urbana (madrugada oscura, tarde-noche
+caliente). Fix 1 del paso: el tooltip mostraba "undefined" — el datum de
+la fila es el ARRAY de conteos (no su índice), así que `dayNames.get()`
+fallaba; reescrito el binding con datos planos por rect
+({day, hour, count}) y verificado el hover ("Monday 13h · 110 crimes").
+Fix 2 del paso (a pedido del usuario): **leyenda de intensidad** — colorbar
+vertical a la derecha (defs/linearGradient de 11 stops + axisRight con
+ticks 0→max formateados). Su primer render no aparecía: un `h` usado fuera
+de su callback en los hour-labels reventaba el script ANTES de dibujar
+leyenda y labels de hora (el grid sobrevivía por orden de dibujo); fix del
+callback y verificado: colorbar + ticks + horas visibles (screenshot).
+Fix 3 (reportado por el usuario): los labels de día en negro invisibles
+sobre el fondo oscuro — el `.attr("class", "axis-x")` SOBREESCRIBÍA el
+class="day-label" (el segundo attr reemplaza al primero) y perdían el
+fill; además el selector `.axis-x text` de trends no los cubría. Fix:
+class único + CSS por separado (día en `--text` 11px bold, horas en
+`--muted`) — verificado con getComputedStyle + screenshot.
+**Por qué:** tercer paso del Sprint 7 (ítem "heatmap día×hora" del plan).
+La matriz completa (0 reales) viene del mismo principio del zero-fill de
+features/weekly: la celda sin datos ES un cero, no un hueco.
+**Archivos:**
+- `api/app/schemas/crimes.py` — DayHourRow; `api/app/services/crimes.py` — day_hour()
+- `api/app/routers/crimes.py` — endpoint /by-hour
+- `api/tests/test_crimes_by_hour.py` — 1 test (nuevo)
+- `dashboard/src/{api,heatmap,main}.js`, `index.html`, `styles.css`
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest api/tests -q` → 19 passed (18 + 1) · `pytest python/tests -q` →
+  142 passed · ruff limpio
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 3" en `docs/verification.md` (pytest, ruff,
+  smoke visual del heatmap con hover).
+
 ## [2026-10-21] Sprint 7 · Paso 2 — Line chart de tendencias (trends.js)
 
 **Qué:** `dashboard/src/trends.js` nuevo: gráfico de línea mensual
