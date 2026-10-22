@@ -2,31 +2,65 @@
 
 Principle (AGENTS / plan §4): the API only READS the warehouse (facts,
 dims and analytics views); all heavy aggregation lives in PostgreSQL.
-"""
 
-# (community_area_key, crime_type_key, date_key, arrest)
+Filters (Sprint 7 Paso 5): the analytics endpoints accept optional
+primary_type / year / month / community_area query params, injected as
+conditions with %s bindings (nunca interpolados). Las vistas del Sprint 4
+no soportan filtros, así que esas dos agregaciones (by-type/by-area) se
+recalculan sobre fact + dims con el MISMO SQL base que las creó.
+"""
 
 from datetime import timedelta
 
+FILTER_FIELDS = ("primary_type", "year", "month", "community_area")
 
-def crimes_summary(conn) -> dict:
+# SQL de cada condición: ct = dim_crime_type, d = dim_date, ca = dim_community_area
+_FILTER_SQL = {
+    "primary_type": "ct.primary_type = %(primary_type)s",
+    "year": "d.year = %(year)s",
+    "month": "d.month = %(month)s",
+    "community_area": "ca.community_area = %(community_area)s",
+}
+
+
+def _where(filters: dict | None) -> str:
+    if not filters:
+        return ""
+    conds = [_FILTER_SQL[k] for k in FILTER_FIELDS if filters.get(k) is not None]
+    return " AND " + " AND ".join(conds) if conds else ""
+
+
+def _filter_params(filters: dict | None) -> dict:
+    if not filters:
+        return {}
+    return {k: filters[k] for k in FILTER_FIELDS if filters.get(k) is not None}
+
+
+def crimes_summary(conn, filters: dict | None = None) -> dict:
     """Volumen global de la estrella: totales, tasa de arresto y rango."""
+    where = _where(filters)
     cur = conn.cursor()
     cur.execute(
-        """
+        f"""
         SELECT
             count(*)                                                    AS crime_count,
             count(*) FILTER (WHERE f.arrest)                            AS arrest_count,
             CASE WHEN count(*) > 0 THEN
                 round(100.0 * count(*) FILTER (WHERE f.arrest) / count(*), 1)
-            END                                                         AS arrest_rate_pct,
+                ELSE 0
+            END                                                           AS arrest_rate_pct,
             min(d.full_date)                                            AS first_crime_date,
             max(d.full_date)                                            AS last_crime_date,
             count(DISTINCT f.crime_type_key)                            AS distinct_crime_types,
             count(DISTINCT f.community_area_key)                        AS distinct_community_areas
         FROM warehouse.fact_crime f
         JOIN warehouse.dim_date d ON d.date_key = f.date_key
-        """
+        JOIN warehouse.dim_crime_type ct ON ct.crime_type_key = f.crime_type_key
+        LEFT JOIN warehouse.dim_community_area ca
+            ON ca.community_area_key = f.community_area_key
+        WHERE TRUE{where}
+        """,
+        _filter_params(filters),
     )
     row = cur.fetchone()
     cur.close()
@@ -38,16 +72,32 @@ def crimes_summary(conn) -> dict:
     return dict(zip(keys, row))
 
 
-def monthly_trends(conn) -> list[dict]:
-    """Tendencia mensual (vw_monthly_crimes), del mes más viejo al más nuevo."""
+def monthly_trends(conn, filters: dict | None = None) -> list[dict]:
+    """Tendencia mensual (vw_monthly_crimes), del mes más viejo al más nuevo.
+
+    Con filtros se recalcula sobre fact (la vista no soporta filtros);
+    mismo SQL base, mismas columnas.
+    """
+    where = _where(filters)
     cur = conn.cursor()
     cur.execute(
-        """
-        SELECT month_date, year, month, month_name,
-               crime_count, arrest_count, arrest_rate_pct
-        FROM warehouse.vw_monthly_crimes
+        f"""
+        SELECT date_trunc('month', d.full_date)::date AS month_date,
+               d.year, d.month, d.month_name,
+               count(*)                          AS crime_count,
+               count(*) FILTER (WHERE f.arrest)  AS arrest_count,
+               round(100.0 * count(*) FILTER (WHERE f.arrest) / count(*), 1)
+                                                 AS arrest_rate_pct
+        FROM warehouse.fact_crime f
+        JOIN warehouse.dim_date d ON d.date_key = f.date_key
+        JOIN warehouse.dim_crime_type ct ON ct.crime_type_key = f.crime_type_key
+        LEFT JOIN warehouse.dim_community_area ca
+            ON ca.community_area_key = f.community_area_key
+        WHERE TRUE{where}
+        GROUP BY 1, 2, 3, 4
         ORDER BY month_date
-        """
+        """,
+        _filter_params(filters),
     )
     rows = cur.fetchall()
     cur.close()
@@ -58,45 +108,75 @@ def monthly_trends(conn) -> list[dict]:
     return [dict(zip(keys, row)) for row in rows]
 
 
-def crime_types(conn, limit: int | None = None) -> list[dict]:
+def crime_types(conn, limit: int | None = None, filters: dict | None = None) -> list[dict]:
     """Crímenes por primary_type (fact + dim_crime_type), más share.
 
     Empates resueltos por orden alfabético del tipo (determinista).
+    Sin filtro de primary_type aquí: ES la dimensión de agrupación
+    (filtrarla devolvería una sola fila).
     """
-    sql = """
+    filters = dict(filters or {})
+    filters.pop("primary_type", None)
+    where = _where(filters)
+    sql = f"""
         SELECT ct.primary_type,
                count(*)                                            AS crime_count,
                round(100.0 * count(*) / sum(count(*)) OVER (), 1)  AS share_pct
         FROM warehouse.fact_crime f
         JOIN warehouse.dim_crime_type ct ON ct.crime_type_key = f.crime_type_key
+        JOIN warehouse.dim_date d ON d.date_key = f.date_key
+        LEFT JOIN warehouse.dim_community_area ca
+            ON ca.community_area_key = f.community_area_key
+        WHERE TRUE{where}
         GROUP BY ct.primary_type
         ORDER BY crime_count DESC, ct.primary_type
     """
     if limit is not None:
-        sql += " LIMIT %s"
+        sql += " LIMIT %(limit)s"
     cur = conn.cursor()
-    cur.execute(sql, (limit,) if limit is not None else None)
+    params = {**_filter_params(filters), **({"limit": limit} if limit is not None else {})}
+    cur.execute(sql, params)
     rows = cur.fetchall()
     cur.close()
     keys = ["primary_type", "crime_count", "share_pct"]
     return [dict(zip(keys, row)) for row in rows]
 
 
-def area_ranking(conn, limit: int | None = None) -> list[dict]:
-    """Ranking de community areas (vw_area_crime_ranking), rank ascendente.
+def area_ranking(conn, limit: int | None = None, filters: dict | None = None) -> list[dict]:
+    """Ranking de community areas, recalculado con los filtros activos.
 
-    Con empates, se ordena además por número de área (determinista).
+    Sin filtros equivale a vw_area_crime_ranking (mismo SQL); con filtros
+    el share/rank se computan sobre el conjunto FILTRADO. Filtra por
+    primary_type/year/month; community_area quedaría rank-of-one (sin
+    sentido) y se ignora aquí.
     """
-    sql = """
-        SELECT community_area, community_area_name,
-               crime_count, share_pct, crime_rank
-        FROM warehouse.vw_area_crime_ranking
-        ORDER BY crime_rank, community_area
+    filters = dict(filters or {})
+    filters.pop("community_area", None)
+    where = _where(filters)
+    sql = f"""
+        SELECT ca.community_area, ca.community_area_name,
+               count(*)                                            AS crime_count,
+               round(100.0 * count(*) / sum(count(*)) OVER (), 1)  AS share_pct,
+               rank() OVER (ORDER BY count(*) DESC)                AS crime_rank
+        FROM warehouse.fact_crime f
+        JOIN warehouse.dim_community_area ca
+            ON ca.community_area_key = f.community_area_key
+        JOIN warehouse.dim_date d ON d.date_key = f.date_key
+        LEFT JOIN warehouse.dim_crime_type ct
+            ON ct.crime_type_key = f.crime_type_key
+        WHERE TRUE{where}
+        GROUP BY ca.community_area, ca.community_area_name
     """
     if limit is not None:
-        sql += " LIMIT %s"
+        sql = (
+            f"SELECT * FROM ({sql}) ranked "
+            "ORDER BY crime_rank, community_area LIMIT %(limit)s"
+        )
+    else:
+        sql += " ORDER BY crime_rank, community_area"
     cur = conn.cursor()
-    cur.execute(sql, (limit,) if limit is not None else None)
+    params = {**_filter_params(filters), **({"limit": limit} if limit is not None else {})}
+    cur.execute(sql, params)
     rows = cur.fetchall()
     cur.close()
     keys = ["community_area", "community_area_name", "crime_count",
@@ -268,15 +348,24 @@ def weekly_report(conn) -> dict | None:
     }
 
 
-def day_hour(conn) -> list[dict]:
-    """Heatmap día×hora (vw_day_hour), orden ISO (lunes=1) y hora ascendente."""
+def day_hour(conn, filters: dict | None = None) -> list[dict]:
+    """Heatmap día×hora, recalculado con los filtros activos (misma
+    semántica de columnas que vw_day_hour)."""
+    where = _where(filters)
     cur = conn.cursor()
     cur.execute(
-        """
-        SELECT day_of_week, day_name, hour, crime_count
-        FROM warehouse.vw_day_hour
-        ORDER BY day_of_week, hour
-        """
+        f"""
+        SELECT d.day_of_week, d.day_name, f.hour, count(*) AS crime_count
+        FROM warehouse.fact_crime f
+        JOIN warehouse.dim_date d ON d.date_key = f.date_key
+        JOIN warehouse.dim_crime_type ct ON ct.crime_type_key = f.crime_type_key
+        LEFT JOIN warehouse.dim_community_area ca
+            ON ca.community_area_key = f.community_area_key
+        WHERE TRUE{where}
+        GROUP BY d.day_of_week, d.day_name, hour
+        ORDER BY d.day_of_week, hour
+        """,
+        _filter_params(filters),
     )
     rows = cur.fetchall()
     cur.close()

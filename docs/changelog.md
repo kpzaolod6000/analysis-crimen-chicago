@@ -26,6 +26,37 @@ Reglas:
 
 ---
 
+## [2026-10-22] Sprint 7 · Paso 5 (parte 1) — Filtros en la API (tipo/año/mes/área)
+
+**Qué:** los endpoints analíticos (summary, trends, by-type,
+by-community-area, by-hour) aceptan query params `primary_type`,
+`year` (≥2001), `month` (1-12) y `community_area` (1-77), validados por
+FastAPI (422 automático). Servicios: helper `_where()` inyecta condiciones
+con bindings `%s` (nunca interpolación); las vistas no soportan filtros →
+trends/by-type/by-area/by-hour se recalculan sobre fact+dims con el MISMO
+SQL base de las vistas; reglas de sentido: by-type ignora su propia
+dimensión y by-area ignora community_area (rank-of-one). Fix propio: con
+filtros vacíos la división 0/0 explotaba a pesar de COALESCE →
+`CASE WHEN count(*) > 0 ... ELSE 0`. 8 tests nuevos
+(test_crimes_filters.py) hand-computed: THEFT → 1/1/100%, year 2025 →
+todo en 0 (rate 0.0 no null), BATTERY → solo área 41 con share 100,
+área 22 → heatmap solo Tue 10h, month 13 → 422. Smoke real: THEFT →
+4.191/347/8.3% en dev; year 2025 → vacío limpio.
+**Por qué:** primer paso de los filtros del plan (ítem "filtros tipo/año/
+mes/área"): la API debe poder servir el dashboard filtrado sin duplicar
+vistas por combinación. hotspots/reports quedan SIN filtros (son
+snapshots precalculados; se documenta en el router).
+**Archivos:**
+- `api/app/services/crimes.py` — `_where`/`_filter_params` + servicios con filtros
+- `api/app/routers/crimes.py` — params en los 5 endpoints analíticos
+- `api/tests/test_crimes_filters.py` — 8 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest api/tests -q` → 27 passed (19 + 8) · `pytest python/tests -q` →
+  142 passed · ruff limpio
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 5" en `docs/verification.md`.
+
 ## [2026-10-22] Sprint 7 · Paso 4 — Mapa coroplético por community area
 
 **Qué:** (a) asset `dashboard/public/community_areas.geojson` (2 MB): las
