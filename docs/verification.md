@@ -964,3 +964,29 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git push -u origin feature/sprint7-choropleth
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
+
+### Paso 5 (parte 1) — Filtros en la API `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `api/app/services/crimes.py` — `_where`/`_filter_params`; los 5
+    endpoints analíticos aceptan primary_type/year/month/community_area
+  - `api/tests/test_crimes_filters.py` — 8 tests
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 27 passed (19 + 8)
+  - `pytest python/tests -q` → 142 passed
+  - `ruff check python api` → All checks passed
+- **Verificar en dev (uvicorn + URLs filtradas):**
+  ```powershell
+  # /api/crimes/summary?primary_type=THEFT → 4.191/8.3% (real en dev)
+  # /api/crimes/summary?year=2025          → todo en 0, sin error
+  # /api/crimes/by-community-area?primary_type=THEFT → ranking solo THEFT
+  # /api/crimes/summary?month=13           → 422
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-api-filters develop
+  git add api/ docs/
+  git commit -m "feat: filter params on analytics endpoints"
+  git push -u origin feature/sprint7-api-filters
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
