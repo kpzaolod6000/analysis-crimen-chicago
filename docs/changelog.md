@@ -26,6 +26,36 @@ Reglas:
 
 ---
 
+## [2026-10-21] Sprint 7 · Paso 2 — Line chart de tendencias (trends.js)
+
+**Qué:** `dashboard/src/trends.js` nuevo: gráfico de línea mensual
+consumiendo `/api/crimes/trends` — SVG con ejes (meses %b %Y), línea
+curva monotone + área tenue, **hover** (tooltip flotante + marcador:
+crímenes/arrestos/tasa del mes), **zoom del eje X** (d3.zoom, scaleExtent
+1-8; no-op con 1 punto) y degradación elegante: con <2 meses muestra el
+mensaje "Only 1 month loaded (September 2026, 19,642 crimes). Load the
+1-year window (Sprint 2 · Paso 3)…", sin datos muestra "No data", con API
+caída "API down". main.js llama renderTrends(); styles agrega
+tooltip/ejes/nota. Validado en vivo: build OK (86 KB gzip 29 KB) y
+Playwright contra 5173 → mensaje visible y KPIs intactos (screenshot).
+**Por qué:** segundo paso del Sprint 7 (ítem "line chart hover/zoom/brush"
+del plan). El zoom solo activa con datos multi-mes; el brush queda para
+cuando existan los datos que lo hagan útil (1 año cargado). La degradación
+elegante evita un SVG vacío confuso con la ventana actual de dev.
+**Archivos:**
+- `dashboard/src/trends.js` — chart (nuevo)
+- `dashboard/index.html` — placeholder reemplazado por contenedor real
+- `dashboard/src/main.js`, `dashboard/src/styles.css` — wiring + estilos
+- `.gitignore` — `.playwright-mcp/` (artefactos de validación)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- No aplica suite automatizada (frontend; E2E llega en Sprint 8).
+  Validación manual en vivo (asistente): build + Playwright.
+- `pytest api/tests -q` → 18 passed · ruff → limpio (sin cambios)
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 2" en `docs/verification.md` (dos terminales,
+  mensaje del chart con 1 mes; se llenará al cargar la ventana anual).
+
 ## [2026-10-21] Sprint 7 · Paso 1 — Scaffold dashboard (Vite + D3 + KPI cards)
 
 **Qué:** paquete `dashboard/` nuevo: `package.json` (vite 7 + d3 7.9),
