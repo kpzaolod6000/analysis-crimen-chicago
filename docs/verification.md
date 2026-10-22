@@ -990,3 +990,27 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git push -u origin feature/sprint7-api-filters
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
+
+### Paso 5 (parte 2) — Filter bar del dashboard `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `dashboard/src/filters.js` — 4 selects + Clear; opciones desde la API
+  - `dashboard/src/api.js` — buildQuery; componentes con firma `filters`
+  - `dashboard/src/main.js` — estado + re-render completo
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 27 passed · `pytest python/tests -q` → 142
+  - `ruff check python api` → All checks passed
+  - `cd dashboard; npm run build` → OK
+- **Verificar en dev (dos terminales → 5173):**
+  1. Type → THEFT: KPIs cambian a **4,191 crimes / 8.3%**; map y heatmap
+     se recolorean (trends queda con su nota de 1 mes)
+  2. Area → "32 · Loop": KPIs ≈ 679; el mapa resalta solo Loop
+  3. Clear filters: vuelve a 19,642 / 77 / 254
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-filter-bar develop
+  git add dashboard/ docs/
+  git commit -m "feat: dashboard filter bar wired to api filters"
+  git push -u origin feature/sprint7-filter-bar
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```

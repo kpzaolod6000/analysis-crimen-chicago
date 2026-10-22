@@ -26,6 +26,32 @@ Reglas:
 
 ---
 
+## [2026-10-22] Sprint 7 · Paso 5 (parte 2) — Filter bar del dashboard (filters.js)
+
+**Qué:** `dashboard/src/filters.js` nuevo: barra con 4 selects (Type /
+Year / Month / Area) + botón "Clear filters". Las opciones salen de la
+propia API (top 100 tipos, años presentes en trends, meses fijos, las 77
+áreas con nombre) y quedan estables sin filtros. Cada cambio dispara
+`onChange(filters)` y main.js re-renderiza TODO el dashboard (kpis,
+trends, heatmap, mapa) con los filtros activos. Refactor mínimo: los 4
+componentes + api.js ahora aceptan `filters` (buildQuery omite
+null/undefined y concatena el resto).
+**Por qué:** cierra el ítem "filtros (tipo, año, mes, área)" del plan.
+Los componentes no saben del estado global: reciben el objeto filters y
+consultan — main.js es dueño del estado (simple y testeable en E2E).
+**Archivos:**
+- `dashboard/src/filters.js` — barra (nuevo)
+- `dashboard/src/api.js` — buildQuery + firmas con filters
+- `dashboard/src/{kpis,trends,heatmap,map}.js` — firma con filters
+- `dashboard/src/main.js`, `index.html`, `styles.css` — wiring
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- La capa API ya está cubierta (27 passed incl. 8 de filtros). Visual
+  (manual): filtrar THEFT → KPIs cambian a 4.191/8.3% y el mapa/heatmap
+  se recolorean; Clear filters → estado base.
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 5 parte 2" en `docs/verification.md`.
+
 ## [2026-10-22] Sprint 7 · Paso 5 (parte 1) — Filtros en la API (tipo/año/mes/área)
 
 **Qué:** los endpoints analíticos (summary, trends, by-type,

@@ -1,5 +1,5 @@
-/**
- * Day x hour heatmap (Sprint 7 · Paso 3).
+﻿/**
+ * Day x hour heatmap (Sprint 7 Â· Paso 3).
  *
  * Consumes /api/crimes/by-hour (vw_day_hour). 7x24 cell grid (ISO days
  * Monday..Sunday, hours 0..23), sequential color scale, hover tooltip
@@ -18,11 +18,11 @@ function renderEmpty(container, message) {
   container.append("div").attr("class", "chart-note").text(message);
 }
 
-export async function renderHeatmap() {
+export async function renderHeatmap(filters = {}) {
   const container = d3.select("#heatmap-chart");
   let cells;
   try {
-    cells = await getByHour();
+    cells = await getByHour(filters);
   } catch (err) {
     renderEmpty(container, `API down: ${err.message}`);
     return;
@@ -69,8 +69,8 @@ export async function renderHeatmap() {
     .attr("class", "chart-tooltip")
     .style("opacity", 0);
 
-  // datos planos por rect: {day, hour, count} — el datum de la fila es el
-  // ARRAY de conteos (no su índice): binding plano evita el "undefined"
+  // datos planos por rect: {day, hour, count} â€” el datum de la fila es el
+  // ARRAY de conteos (no su Ã­ndice): binding plano evita el "undefined"
   row
     .selectAll("rect")
     .data((rowCounts, dayIdx) =>
@@ -95,7 +95,7 @@ export async function renderHeatmap() {
     })
     .on("pointerleave", () => tooltip.style("opacity", 0));
 
-  // labels: días a la izquierda, horas debajo
+  // labels: dÃ­as a la izquierda, horas debajo
   svg
     .selectAll("text.day-label")
     .data(DAYS)

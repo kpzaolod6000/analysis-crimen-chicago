@@ -26,6 +26,39 @@ main { padding: 1rem 2rem 3rem; max-width: 1200px; margin: 0 auto; }
 section { margin-top: 2rem; }
 section h2 { font-size: 1.05rem; color: var(--muted); font-weight: 500; }
 
+/* filter bar (Sprint 7 Paso 5) */
+#filters { margin-top: 1rem; }
+.filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+}
+.filters-bar label { color: var(--muted); font-size: 0.8rem; }
+.filters-bar select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid #3a4050;
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  margin-left: 0.3rem;
+  font-size: 0.8rem;
+}
+.filter-clear {
+  margin-left: auto;
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+.filter-clear:hover { background: rgba(239, 83, 80, 0.15); }
+
 /* KPI cards */
 .kpi-grid {
   display: grid;
