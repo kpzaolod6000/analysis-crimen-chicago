@@ -1067,4 +1067,82 @@ registro histórico de `docs/changelog.md` y de la estrategia de
 
 ---
 
-## Sprint 8 — Playwright E2E (próximo)
+## Sprint 8 — Playwright E2E
+
+### Paso 1 — Setup + smoke `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `python/requirements.txt` — pytest-playwright (binarios ya instalados)
+  - `dashboard/e2e/test_smoke.py` — título visible (ejercicio día-1)
+  - `Makefile` — target `test-e2e`
+  - `docs/testing.md` — naming `test_*.py` (no `*.spec.py`)
+- **Verificar (tu parte):**
+  ```powershell
+  .\.venv\Scripts\python.exe -m pip install -r python\requirements.txt
+  # (si otro host: python -m playwright install chromium)
+  # terminal 1: .\.venv\Scripts\python.exe -m uvicorn api.app.main:app --port 8000
+  # terminal 2 (dashboard/): npm run dev
+  # terminal 3:
+  pytest dashboard/e2e -v              # → 1 passed
+  pytest dashboard/e2e -v --headed     # viendo el navegador
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint8-playwright-setup develop
+  git add python/requirements.txt dashboard/e2e/ Makefile docs/
+  git commit -m "feat: playwright e2e setup with smoke test"
+  git push -u origin feature/sprint8-playwright-setup
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```
+
+### Paso 2 — data-testid + specs de dominio `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `dashboard/index.html`, `src/{kpis,filters}.js` — data-testid estables
+  - `dashboard/src/*.js` — guard renderSeq (race de orden de fetches)
+  - `dashboard/e2e/` — e2e_config + 6 specs (13 tests)
+- **Verificar (tu parte):**
+  ```powershell
+  # tres terminales (API :8000 + npm run dev + pytest):
+  pytest dashboard/e2e -v        # → 13 passed
+  pytest dashboard/e2e -v --headed  # ver el navegador ejecutar
+  ```
+  Suites previas sin cambios: `pytest api/tests -q` → 27 · `pytest
+  python/tests -q` → 142 · `ruff check python api` → limpio.
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint8-e2e-specs develop
+  git add dashboard/ docs/
+  git commit -m "feat: e2e domain specs with stable test ids and render guards"
+  git push -u origin feature/sprint8-e2e-specs
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  # luego: cierre Sprint 8 + release v0.8.0 (§9)
+  ```
+
+---
+
+## Sprint 7 · Reorganización (audit de cobertura + 2 páginas)
+
+### Paso 8a — API: /mom y /by-day `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `api/app/services/crimes.py` — month_over_month / by_day (con filtros)
+  - `api/app/routers/crimes.py` — 2 endpoints nuevos
+  - `api/tests/test_crimes_mom_byday.py` — 5 tests
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 32 passed (27 + 5)
+  - `pytest python/tests -q` → 142 passed
+  - `ruff check python api` → All checks passed
+- **Verificar en dev (uvicorn):**
+  ```powershell
+  # /api/crimes/mom       → MoM del año (1 fila con NULLs hoy)
+  # /api/crimes/by-day    → 7 días ISO con is_weekend
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-mom-byday-endpoints develop
+  git add api/ docs/
+  git commit -m "feat: mom and by-day endpoints"
+  git push -u origin feature/sprint7-mom-byday-endpoints
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  ```

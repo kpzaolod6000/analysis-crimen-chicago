@@ -46,6 +46,21 @@ class DayHourRow(BaseModel):
     crime_count: int
 
 
+class MoMRow(BaseModel):
+    month_date: date
+    crime_count: int
+    prev_crime_count: int | None   # None en el primer mes (no hay base)
+    change_abs: int | None
+    change_pct: float | None
+
+
+class DayOfWeekRow(BaseModel):
+    day_of_week: int
+    day_name: str
+    is_weekend: bool
+    crime_count: int
+
+
 class HotspotRun(BaseModel):
     run_key: int
     eps: float            # metros reales (haversine), guardado por save_run

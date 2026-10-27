@@ -1,5 +1,5 @@
-/**
- * Filter bar (Sprint 7 · Paso 5 parte 2).
+﻿/**
+ * Filter bar (Sprint 7 Â· Paso 5 parte 2).
  *
  * Four selects (primary_type / year / month / community_area) + Clear.
  * The lists of options come from the API itself (top types, years present
@@ -39,28 +39,44 @@ export async function renderFilters(onChange) {
   const monthSel = bar.append("label").html("Month ");
   const areaSel = bar.append("label").html("Area ");
 
-  const typeSelect = typeSel.append("select").attr("id", "filter-type");
-  const yearSelect = yearSel.append("select").attr("id", "filter-year");
-  const monthSelect = monthSel.append("select").attr("id", "filter-month");
-  const areaSelect = areaSel.append("select").attr("id", "filter-area");
+  const typeSelect = typeSel
+    .append("select")
+    .attr("id", "filter-type")
+    .attr("data-testid", "filter-type");
+  const yearSelect = yearSel
+    .append("select")
+    .attr("id", "filter-year")
+    .attr("data-testid", "filter-year");
+  const monthSelect = monthSel
+    .append("select")
+    .attr("id", "filter-month")
+    .attr("data-testid", "filter-month");
+  const areaSelect = areaSel
+    .append("select")
+    .attr("id", "filter-area")
+    .attr("data-testid", "filter-area");
 
-  // opciones: llenar sin filtros (listas estables); best-effort — si la
-  // API cae, la barra queda con "All" y el dashboard muestra su error
+  // opciones estáticas SIN fetch (meses 1-12): llenar al instante evita
+  // la race de "select_option no encuentra la opción" en los E2E
+  fillSelect(monthSelect, d3.range(1, 13), (m) => MONTHS[m - 1]);
+
+  // opciones dependientes de datos: best-effort — si la API cae, la barra
+  // sigue con "All" y las charts muestran su error
   try {
     const [types, areas, trends] = await Promise.all([
       getByType(100),
       getByCommunityArea(100),
       getTrends(),
     ]);
-    console.log("areas:", areas);
     fillSelect(typeSelect, types.map((t) => t.primary_type));
     const years = [...new Set(trends.map((t) => t.year))].sort();
     fillSelect(yearSelect, years, (y) => `${y}`);
-    fillSelect(monthSelect, d3.range(1, 13), (m) => MONTHS[m - 1]);
+    // area: VALUE = número (un objeto como value → "[object Object]")
+    const names = new Map(areas.map((a) => [a.community_area, a.community_area_name]));
     fillSelect(
       areaSelect,
-      areas.map((a) => ({ v: a.community_area, l: a.community_area_name })),
-      (a) => `${a.v} · ${a.l}`
+      areas.map((a) => a.community_area),
+      (num) => `${num} · ${names.get(num)}`
     );
   } catch {
     /* la barra sigue con All; el error lo muestran las charts */

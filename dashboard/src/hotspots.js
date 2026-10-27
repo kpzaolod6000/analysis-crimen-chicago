@@ -14,12 +14,17 @@ import * as d3 from "d3";
 import { getHotspots } from "./api.js";
 import { renderHotspotMarkers } from "./map.js";
 
+// token de secuencia (race de orden: un fetch lento no pisa al nuevo)
+let renderSeq = 0;
+
 export async function renderHotspots() {
+  const seq = ++renderSeq;
   const panel = d3.select("#hotspots-panel");
   let data;
   try {
     data = await getHotspots();
   } catch (err) {
+    if (seq !== renderSeq) return;
     const notFound = String(err.message).includes("404");
     panel
       .html("")
@@ -32,6 +37,7 @@ export async function renderHotspots() {
       );
     return;
   }
+  if (seq !== renderSeq) return;  // resultado desactualizado: ignorar
 
   const { run, clusters } = data;
   panel.html("");

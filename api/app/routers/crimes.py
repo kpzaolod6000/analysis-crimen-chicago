@@ -8,7 +8,9 @@ from api.app.schemas.crimes import (
     CrimesSummary,
     CrimeTypeCount,
     DayHourRow,
+    DayOfWeekRow,
     HotspotsResponse,
+    MoMRow,
     MonthlyTrend,
 )
 from api.app.services import crimes as crimes_service
@@ -111,5 +113,31 @@ def get_crimes_by_hour(
     community_area: int | None = filter_area,
 ):
     return crimes_service.day_hour(
+        conn, _filters(primary_type, year, month, community_area)
+    )
+
+
+@router.get("/mom", response_model=list[MoMRow])
+def get_crimes_mom(
+    conn: Conn,
+    primary_type: str | None = filter_type,
+    year: int | None = filter_year,
+    month: int | None = filter_month,
+    community_area: int | None = filter_area,
+):
+    return crimes_service.month_over_month(
+        conn, _filters(primary_type, year, month, community_area)
+    )
+
+
+@router.get("/by-day", response_model=list[DayOfWeekRow])
+def get_crimes_by_day(
+    conn: Conn,
+    primary_type: str | None = filter_type,
+    year: int | None = filter_year,
+    month: int | None = filter_month,
+    community_area: int | None = filter_area,
+):
+    return crimes_service.by_day(
         conn, _filters(primary_type, year, month, community_area)
     )

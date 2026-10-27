@@ -373,6 +373,68 @@ def day_hour(conn, filters: dict | None = None) -> list[dict]:
     return [dict(zip(keys, row)) for row in rows]
 
 
+def month_over_month(conn, filters: dict | None = None) -> list[dict]:
+    """MoM por mes (vw_month_over_month recalculado con filtros): LAG del
+    crime_count mensual, prev/change NULL en el primer mes."""
+    where = _where(filters)
+    cur = conn.cursor()
+    cur.execute(
+        f"""
+        WITH monthly AS (
+            SELECT date_trunc('month', d.full_date)::date AS month_date,
+                   count(*) AS crime_count
+            FROM warehouse.fact_crime f
+            JOIN warehouse.dim_date d ON d.date_key = f.date_key
+            JOIN warehouse.dim_crime_type ct ON ct.crime_type_key = f.crime_type_key
+            LEFT JOIN warehouse.dim_community_area ca
+                ON ca.community_area_key = f.community_area_key
+            WHERE TRUE{where}
+            GROUP BY 1
+        )
+        SELECT month_date,
+               crime_count,
+               lag(crime_count) OVER (ORDER BY month_date)          AS prev_crime_count,
+               crime_count - lag(crime_count) OVER (ORDER BY month_date) AS change_abs,
+               round(100.0 * (crime_count - lag(crime_count) OVER (ORDER BY month_date))
+                     / lag(crime_count) OVER (ORDER BY month_date), 1) AS change_pct
+        FROM monthly
+        ORDER BY month_date
+        """,
+        _filter_params(filters),
+    )
+    rows = cur.fetchall()
+    cur.close()
+    keys = ["month_date", "crime_count", "prev_crime_count", "change_abs", "change_pct"]
+    return [dict(zip(keys, row)) for row in rows]
+
+
+def by_day(conn, filters: dict | None = None) -> list[dict]:
+    """Crímenes por día de la semana (ISO) + flag weekend, con filtros.
+
+    Misma agregación que el análisis del notebook 02 (sección 4), en SQL.
+    """
+    where = _where(filters)
+    cur = conn.cursor()
+    cur.execute(
+        f"""
+        SELECT d.day_of_week, d.day_name, d.is_weekend, count(*) AS crime_count
+        FROM warehouse.fact_crime f
+        JOIN warehouse.dim_date d ON d.date_key = f.date_key
+        JOIN warehouse.dim_crime_type ct ON ct.crime_type_key = f.crime_type_key
+        LEFT JOIN warehouse.dim_community_area ca
+            ON ca.community_area_key = f.community_area_key
+        WHERE TRUE{where}
+        GROUP BY d.day_of_week, d.day_name, d.is_weekend
+        ORDER BY d.day_of_week
+        """,
+        _filter_params(filters),
+    )
+    rows = cur.fetchall()
+    cur.close()
+    keys = ["day_of_week", "day_name", "is_weekend", "crime_count"]
+    return [dict(zip(keys, row)) for row in rows]
+
+
 def database_ok(conn) -> bool:
     cur = conn.cursor()
     cur.execute("SELECT 1")

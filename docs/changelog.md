@@ -26,6 +26,95 @@ Reglas:
 
 ---
 
+## [2026-10-22] Sprint 7 · Paso 8a — API: endpoints /mom y /by-day (brechas del audit)
+
+**Qué:** 2 endpoints nuevos (service + router + schemas) que exponen los
+análisis del notebook 02 que el dashboard no mostraba: `GET
+/api/crimes/mom` (month-over-month: LAG sobre el monthly con filtros —
+prev/change/pct NULL en el primer mes) y `GET /api/crimes/by-day`
+(crímenes por día de la semana ISO + flag is_weekend, con filtros — la
+misma agregación de la sección 4 de nb02 en SQL). 5 tests
+(test_crimes_mom_byday.py) hand-computed con la fixture. Suite api → 32
+passed.
+**Por qué:** audit de cobertura pedido por el usuario: MoM y day-of-week
+existían como vistas/analysis pero no eran consumibles; el dashboard los
+va a necesitar para las páginas filtradas (Paso 8b).
+**Archivos:**
+- `api/app/schemas/crimes.py` — MoMRow / DayOfWeekRow
+- `api/app/services/crimes.py` — month_over_month / by_day
+- `api/app/routers/crimes.py` — /mom + /by-day
+- `api/tests/test_crimes_mom_byday.py` — 5 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest api/tests -q` → 32 passed (27 + 5) · ruff limpio
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 8a" en `docs/verification.md`.
+
+## [2026-10-22] Sprint 8 · Paso 2 — data-testid + 6 specs de dominio (13 passed)
+
+**Qué:** (a) `data-testid` estables en el dashboard (index.html: filters/
+kpi/trends/heatmap/map/hotspots; kpis.js: kpi-card; filters.js: los 4
+selects) según testing.md §3.2. (b) 6 specs nuevos (13 tests totales con
+smoke): test_kpis (4 cards, labels/sub), test_filters (THEFT → 4,191 →
+Clear → 19,642), test_trends (nota de 1 mes + sin svg vacío), test_heatmap
+(grid 168 + reactivo a mes), test_map (77 paths + toggle bubble + hover
+tooltip) y test_hotspots (panel en cualquiera de sus 2 estados + top10).
+(c) Fixes durante la puesta en verde: strict mode (la nota del trends
+también menciona el número → aserciones scoped a kpi-grid), conteo 169
+(leyenda del heatmap cuenta como rect → scope `g.row rect`), race de
+opciones de mes (ahora se llenan SIN fetch, instantáneo) y bug real del
+select Area: objetos como value → "[object Object]" (value = número +
+labelsFn con Map de nombres); console.log debug limpiado. (d) Fix
+estructural del heatmap reactivo: **race de orden de renders** — el fetch
+inicial (sin filtro) podía terminar DESPUÉS que el filtrado y pisar su
+"Nota" con el grid viejo; fix con token de secuencia `renderSeq` en los 5
+componentes (kpis/trends/heatmap/map/hotspots): un resultado desactualizado
+ya no se dibuja (patrón que sobrevive a cualquier lentitud de la API).
+**Por qué:** segundo paso del Sprint 8: los specs cubren los 6 flujos
+críticos definidos en testing.md §3.2 contra el stack REAL (API dev + DB
+real, sin mocks). La convención data-testid habilita selectores estables
+para siempre.
+**Archivos:**
+- `dashboard/index.html`, `src/{kpis,filters}.js` — data-testid (+ fix
+  value del select area)
+- `dashboard/e2e/{e2e_config,test_kpis,test_filters,test_trends,
+  test_heatmap,test_map,test_hotspots}.py` — suite (nueva)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest dashboard/e2e -v` → 13 passed (5.9 s, headless, stack vivo) ·
+  suites previas sin cambios (api 27 · python 142)
+**Cómo verificar:**
+- Checklist "Sprint 8 · Paso 2" en `docs/verification.md`.
+
+## [2026-10-22] Sprint 8 · Paso 1 — Playwright instalado + smoke E2E en verde
+
+**Qué:** (a) `pytest-playwright` en requirements (con nota: binarios una
+vez via `python -m playwright install chromium` — ya descargados, 118 MB)
++ target `test-e2e` en el Makefile. (b) `dashboard/e2e/test_smoke.py`
+(ejercicio día-1 de testing.md §3.1): abre 5173 y valida el título
+"Chicago Crimes Analytics" con `expect().to_be_visible()`; base URL por
+env `E2E_BASE_URL` (default localhost:5173). (c) Fix de naming
+descubierto al correr: pytest NO recoge `*.spec.py` (module-name dot
+`smoke.spec` → ModuleNotFoundError) → convención efectiva `test_*.py`
+(renombrado + pytest.ini eliminado + testing.md §3.1/3.2 actualizados).
+Validado en vivo: API + Vite arriba → **1 passed** headless.
+**Por qué:** primer paso del Sprint 8 (ruta guiada de testing.md). El
+smoke domina el ciclo install → run → report; los specs de dominio
+(filters/trends/heatmap/map/hotspots) siguen en los próximos pasos con
+`data-testid` en el HTML.
+**Archivos:**
+- `python/requirements.txt` — pytest-playwright
+- `dashboard/e2e/test_smoke.py` — smoke (nuevo)
+- `Makefile` — target `test-e2e`
+- `docs/testing.md` — naming corregido (spec → test_*.py)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest dashboard/e2e -v` → 1 passed (con stack local arriba) ·
+  suites previas sin cambios (api 27 · python 142)
+**Cómo verificar:**
+- Checklist "Sprint 8 · Paso 1" en `docs/verification.md` (instalación,
+  dos terminales + pytest e2e).
+
 ## [2026-10-22] Sprint 7 — Cierre del sprint (bump 0.7.0)
 
 **Qué:** Sprint 7 marcado `[x]` en `docs/plan.md` y estado del README
