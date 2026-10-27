@@ -26,6 +26,42 @@ Reglas:
 
 ---
 
+## [2026-10-22] Sprint 8 · Paso 2 — data-testid + 6 specs de dominio (13 passed)
+
+**Qué:** (a) `data-testid` estables en el dashboard (index.html: filters/
+kpi/trends/heatmap/map/hotspots; kpis.js: kpi-card; filters.js: los 4
+selects) según testing.md §3.2. (b) 6 specs nuevos (13 tests totales con
+smoke): test_kpis (4 cards, labels/sub), test_filters (THEFT → 4,191 →
+Clear → 19,642), test_trends (nota de 1 mes + sin svg vacío), test_heatmap
+(grid 168 + reactivo a mes), test_map (77 paths + toggle bubble + hover
+tooltip) y test_hotspots (panel en cualquiera de sus 2 estados + top10).
+(c) Fixes durante la puesta en verde: strict mode (la nota del trends
+también menciona el número → aserciones scoped a kpi-grid), conteo 169
+(leyenda del heatmap cuenta como rect → scope `g.row rect`), race de
+opciones de mes (ahora se llenan SIN fetch, instantáneo) y bug real del
+select Area: objetos como value → "[object Object]" (value = número +
+labelsFn con Map de nombres); console.log debug limpiado. (d) Fix
+estructural del heatmap reactivo: **race de orden de renders** — el fetch
+inicial (sin filtro) podía terminar DESPUÉS que el filtrado y pisar su
+"Nota" con el grid viejo; fix con token de secuencia `renderSeq` en los 5
+componentes (kpis/trends/heatmap/map/hotspots): un resultado desactualizado
+ya no se dibuja (patrón que sobrevive a cualquier lentitud de la API).
+**Por qué:** segundo paso del Sprint 8: los specs cubren los 6 flujos
+críticos definidos en testing.md §3.2 contra el stack REAL (API dev + DB
+real, sin mocks). La convención data-testid habilita selectores estables
+para siempre.
+**Archivos:**
+- `dashboard/index.html`, `src/{kpis,filters}.js` — data-testid (+ fix
+  value del select area)
+- `dashboard/e2e/{e2e_config,test_kpis,test_filters,test_trends,
+  test_heatmap,test_map,test_hotspots}.py` — suite (nueva)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest dashboard/e2e -v` → 13 passed (5.9 s, headless, stack vivo) ·
+  suites previas sin cambios (api 27 · python 142)
+**Cómo verificar:**
+- Checklist "Sprint 8 · Paso 2" en `docs/verification.md`.
+
 ## [2026-10-22] Sprint 8 · Paso 1 — Playwright instalado + smoke E2E en verde
 
 **Qué:** (a) `pytest-playwright` en requirements (con nota: binarios una

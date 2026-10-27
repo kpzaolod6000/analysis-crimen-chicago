@@ -1094,3 +1094,27 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   git push -u origin feature/sprint8-playwright-setup
   # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
+
+### Paso 2 — data-testid + specs de dominio `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `dashboard/index.html`, `src/{kpis,filters}.js` — data-testid estables
+  - `dashboard/src/*.js` — guard renderSeq (race de orden de fetches)
+  - `dashboard/e2e/` — e2e_config + 6 specs (13 tests)
+- **Verificar (tu parte):**
+  ```powershell
+  # tres terminales (API :8000 + npm run dev + pytest):
+  pytest dashboard/e2e -v        # → 13 passed
+  pytest dashboard/e2e -v --headed  # ver el navegador ejecutar
+  ```
+  Suites previas sin cambios: `pytest api/tests -q` → 27 · `pytest
+  python/tests -q` → 142 · `ruff check python api` → limpio.
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint8-e2e-specs develop
+  git add dashboard/ docs/
+  git commit -m "feat: e2e domain specs with stable test ids"
+  git push -u origin feature/sprint8-e2e-specs
+  # CI verde (checklist §10.3) → merge --no-ff a develop
+  # luego: cierre Sprint 8 + release v0.8.0 (§9)
+  ```

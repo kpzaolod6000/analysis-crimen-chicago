@@ -5,9 +5,14 @@
 import * as d3 from "d3";
 import { getCrimesSummary } from "./api.js";
 
+// token de secuencia (race de orden: un fetch lento no pisa al nuevo)
+let renderSeq = 0;
+
 export async function renderKpis(filters = {}) {
+  const seq = ++renderSeq;
   try {
     const summary = await getCrimesSummary(filters);
+    if (seq !== renderSeq) return;
     const cards = [
       { value: d3.format(",")(summary.crime_count), label: "Crimes", sub: `${summary.first_crime_date} â†’ ${summary.last_crime_date}` },
       { value: `${summary.arrest_rate_pct}%`, label: "Arrest rate", sub: `${d3.format(",")(summary.arrest_count)} arrests` },
@@ -20,7 +25,8 @@ export async function renderKpis(filters = {}) {
       .selectAll(".kpi-card")
       .data(cards)
       .join("div")
-      .attr("class", "kpi-card");
+      .attr("class", "kpi-card")
+      .attr("data-testid", "kpi-card");
     sel.append("div").attr("class", "kpi-value").text((d) => d.value);
     sel.append("div").attr("class", "kpi-label").text((d) => d.label);
     sel.append("div").attr("class", "kpi-sub").text((d) => d.sub || "");

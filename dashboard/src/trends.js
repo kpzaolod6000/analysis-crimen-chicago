@@ -25,15 +25,20 @@ function renderEmpty(container, message) {
     .text(message);
 }
 
+// token de secuencia (race de orden: un fetch lento no pisa al nuevo)
+let renderSeq = 0;
+
 export async function renderTrends(filters = {}) {
+  const seq = ++renderSeq;
   const container = d3.select("#trends-chart");
   let trends;
   try {
     trends = await getTrends(filters);
   } catch (err) {
-    renderEmpty(container, `API down: ${err.message}`);
+    if (seq === renderSeq) renderEmpty(container, `API down: ${err.message}`);
     return;
   }
+  if (seq !== renderSeq) return;
 
   if (trends.length < 2) {
     renderEmpty(

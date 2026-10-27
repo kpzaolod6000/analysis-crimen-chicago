@@ -247,16 +247,23 @@ function drawToolbar(container) {
     });
 }
 
+// token de secuencia (race de orden: un fetch lento no pisa al nuevo)
+let renderSeq = 0;
+
 export async function renderMap(filters = {}) {
+  const seq = ++renderSeq;
   lastFilters = filters;
   const container = d3.select("#map-chart");
   let ranking, geo;
   try {
     ({ ranking, geo } = await loadMapData(filters));
   } catch (err) {
-    renderEmpty(container, `API down or GeoJSON missing: ${err.message}`);
+    if (seq === renderSeq) {
+      renderEmpty(container, `API down or GeoJSON missing: ${err.message}`);
+    }
     return;
   }
+  if (seq !== renderSeq) return;
 
   lastByArea = new Map(ranking.map((r) => [r.community_area, r]));
   const maxCount = d3.max(ranking, (r) => r.crime_count) || 1;

@@ -18,15 +18,21 @@ function renderEmpty(container, message) {
   container.append("div").attr("class", "chart-note").text(message);
 }
 
+// token de secuencia: si un render más nuevo arrancó, el resultado viejo
+// (más lento) NO debe pisar al nuevo (race de orden de fetches)
+let renderSeq = 0;
+
 export async function renderHeatmap(filters = {}) {
+  const seq = ++renderSeq;
   const container = d3.select("#heatmap-chart");
   let cells;
   try {
     cells = await getByHour(filters);
   } catch (err) {
-    renderEmpty(container, `API down: ${err.message}`);
+    if (seq === renderSeq) renderEmpty(container, `API down: ${err.message}`);
     return;
   }
+  if (seq !== renderSeq) return;  // resultado desactualizado: ignorar
   if (!cells.length) {
     renderEmpty(container, "No data in the warehouse.");
     return;
