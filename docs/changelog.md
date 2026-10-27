@@ -26,6 +26,30 @@ Reglas:
 
 ---
 
+## [2026-10-22] Sprint 7 · Paso 8a — API: endpoints /mom y /by-day (brechas del audit)
+
+**Qué:** 2 endpoints nuevos (service + router + schemas) que exponen los
+análisis del notebook 02 que el dashboard no mostraba: `GET
+/api/crimes/mom` (month-over-month: LAG sobre el monthly con filtros —
+prev/change/pct NULL en el primer mes) y `GET /api/crimes/by-day`
+(crímenes por día de la semana ISO + flag is_weekend, con filtros — la
+misma agregación de la sección 4 de nb02 en SQL). 5 tests
+(test_crimes_mom_byday.py) hand-computed con la fixture. Suite api → 32
+passed.
+**Por qué:** audit de cobertura pedido por el usuario: MoM y day-of-week
+existían como vistas/analysis pero no eran consumibles; el dashboard los
+va a necesitar para las páginas filtradas (Paso 8b).
+**Archivos:**
+- `api/app/schemas/crimes.py` — MoMRow / DayOfWeekRow
+- `api/app/services/crimes.py` — month_over_month / by_day
+- `api/app/routers/crimes.py` — /mom + /by-day
+- `api/tests/test_crimes_mom_byday.py` — 5 tests (nuevo)
+- `docs/changelog.md`, `docs/verification.md` — registro y checklist
+**Tests:**
+- `pytest api/tests -q` → 32 passed (27 + 5) · ruff limpio
+**Cómo verificar:**
+- Checklist "Sprint 7 · Paso 8a" en `docs/verification.md`.
+
 ## [2026-10-22] Sprint 8 · Paso 2 — data-testid + 6 specs de dominio (13 passed)
 
 **Qué:** (a) `data-testid` estables en el dashboard (index.html: filters/

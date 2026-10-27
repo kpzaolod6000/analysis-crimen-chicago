@@ -1113,8 +1113,36 @@ registro histórico de `docs/changelog.md` y de la estrategia de
   ```powershell
   git switch -c feature/sprint8-e2e-specs develop
   git add dashboard/ docs/
-  git commit -m "feat: e2e domain specs with stable test ids"
+  git commit -m "feat: e2e domain specs with stable test ids and render guards"
   git push -u origin feature/sprint8-e2e-specs
   # CI verde (checklist §10.3) → merge --no-ff a develop
   # luego: cierre Sprint 8 + release v0.8.0 (§9)
+  ```
+
+---
+
+## Sprint 7 · Reorganización (audit de cobertura + 2 páginas)
+
+### Paso 8a — API: /mom y /by-day `[ ]` (pendiente de tu verificación)
+
+- **Objetos revisables:**
+  - `api/app/services/crimes.py` — month_over_month / by_day (con filtros)
+  - `api/app/routers/crimes.py` — 2 endpoints nuevos
+  - `api/tests/test_crimes_mom_byday.py` — 5 tests
+- **Verificar contenido:**
+  - `pytest api/tests -q` → 32 passed (27 + 5)
+  - `pytest python/tests -q` → 142 passed
+  - `ruff check python api` → All checks passed
+- **Verificar en dev (uvicorn):**
+  ```powershell
+  # /api/crimes/mom       → MoM del año (1 fila con NULLs hoy)
+  # /api/crimes/by-day    → 7 días ISO con is_weekend
+  ```
+- **Git:**
+  ```powershell
+  git switch -c feature/sprint7-mom-byday-endpoints develop
+  git add api/ docs/
+  git commit -m "feat: mom and by-day endpoints"
+  git push -u origin feature/sprint7-mom-byday-endpoints
+  # CI verde (checklist §10.3) → merge --no-ff a develop
   ```
